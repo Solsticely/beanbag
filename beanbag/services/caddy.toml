@@ -9,17 +9,17 @@ datafiles = ["Caddyfile"]
 commands = [
   { download_github_artifact = [
     "dunglas/frankenphp",
-    ["frankenphp-linux-", { get = "arch" }],
+    ["frankenphp-linux-", { get = "arch" }, "-gnu"],
     "./caddy"
   ] },
   { sh = "chmod +x ./caddy" }
 ]
 
 [kill]
-commands = { sh = "./caddy stop" }
+commands = { exec = ["./caddy", "stop"] }
 
 [run]
-on_exit = "kill_and_retry"
+on_exit = "retry"
 commands = { exec = ["authbind", "./caddy", "run"] }
 
 [update]
