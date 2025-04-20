@@ -7,24 +7,48 @@ import asyncio
 logger = logging.getLogger(__name__)
 
 
+def checkargs(ctx, args: list[str], minim: int, maxim: int, mode: str = "default", *, default = ""):
+    argc = len(args)
+
+    if maxim is None:
+        maxim = argc
+
+    assert mode in {"panic", "default", "noneret"}
+
+    panic = mode == "panic"
+
+    if argc < min:
+        ctx.error("expected atleast %d arguments, got %d: %s" % (min, argc, args), panic)
+    if argc > max:
+        ctx.error("expected at most %d arguments, got %d: %s" % (max, argc, args), panic)
+
+    if not (min <= argc <= max) and mode == "noneret":
+        return None
+
+    if type(default) is str:
+        default = [default] * minim
+
+    return args[:min(argc, maxim)] + default[argc:max(0, minim-argc+1)]
+
+
 def get_from_scope(ctx, args: list[str], reverse: bool):
-    if len(args) != 1:
-        ctx.error("get called with more/less than 1 argument")
-    vname = "NONEX" if len(args) < 1 else args[0]
-    val = ctx.query_scope(vname, reverse)
+    args = checkargs(ctx, args, 1, 1, default="NONEX")
+    val = ctx.query_scope(args[0], reverse)
     if val is None:
-        ctx.error("Variable %s is not defined" % vname)
-        return ["VARIABLE_%s <does not exist>" % vname]
+        ctx.error("Variable %s is not defined" % args[0])
+        return ["$%s=UNDEFINED" % args[0]]
     return [val]
 
+
 def set_to_scope(ctx, args, reverse: bool):
-    if len(args) != 2:
-        ctx.error("set called with more/less than 2 arguments")
-        return ["VARIABLE_NONEX"]
+    args = checkargs(ctx, args, 2, 2, "noneret")
+    if args is None:
+        return [""]
     vname = args[0]
     val = args[1]
     ctx.scope[1 if reverse else -1][vname] = val
     return [val]
+
 
 class DslStdlib:
     @staticmethod
@@ -49,10 +73,9 @@ class DslStdlib:
 
     @staticmethod
     async def exec(ctx, args):
-        # run empty command
-        if len(args) < 1:
-            ctx.error("exec invoked with no arguments")
-            return []
+        args = checkargs(ctx, args, 1, None, "noneret")
+        if args is None:
+            return [""]
 
         # find executable
         exec_path = shutil.which(args[0])
