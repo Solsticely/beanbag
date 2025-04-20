@@ -26,43 +26,47 @@ def get_config(args) -> EasyDict:
     for srv_path in services:
         srv_toml = tomllib.load(open(srv_path, "rb"))
 
+        # shorten index path: instead of `srv_toml["service"]["id"]` do
+        # `x.se.id`. Each subkey is shortened to its first 2 characters. To get
+        # `srv_toml["provision"]` we can do `x.pr`.
         x = {item[:2]: srv_toml.get(item) or {} for item in "service storage logging run update kill provision".split()}
+        x = objectify(x)
 
-        srv_id = x["se"].get("id") or srv_path.name
+        srv_id = x.se.g("id", srv_path.name)
 
         service = {
             "path": srv_path,
             "setupfiles": {},  # is filled later
             # [service]
-            "name": x["se"].get("name") or srv_id,
+            "name": x.se.g("name", srv_id),
             "id": srv_id,
-            "env": x["se"].get("envs") or {},
+            "env": x.se.g("envs", {}),
 
             # [storage]
-            "datafile_globs": x["st"].get("datafiles") or [],
-            "datafile_blacklist_globs": x["st"].get("blacklist"),
+            "datafile_globs": x.st.g("datafiles", []),
+            "datafile_blacklist_globs": x.st.get("blacklist"),
 
             # [logging]
-            "log_policy": x["lo"].get("policy") or {},  # TODO: design log policies
-            "log_artifact_glob": x["lo"].get("artifacts") or [],
-            "log_artifact_blacklist_glob": x["lo"].get("blacklist") or [],
+            "log_policy": x.lo.g("policy", {}),  # TODO: design log policies
+            "log_artifact_glob": x.lo.g("artifacts", []),
+            "log_artifact_blacklist_glob": x.lo.g("blacklist", []),
 
             # [provision]
-            "provision": config_parse_dsl(x["pr"]),
+            "provision": config_parse_dsl(x.pr),
 
             # [kill]
-            "kill": config_parse_dsl(x["ki"]),
+            "kill": config_parse_dsl(x.ki),
 
             # [run]
             "run": {
-                "on_exit": x["ru"].get("on_exit") or "retry",
-                **config_parse_dsl(srv_toml.get("run"))
+                "on_exit": x.ru.g("on_exit", "retry"),
+                **config_parse_dsl(x.ru)
             }
         }
 
         # [update]
-        update_type = x["up"].get("type") or "reprovision"
-        kill_before = x["up"].get("kill_before")
+        update_type = x.up.g("type", "reprovision")
+        kill_before = x.up.get("kill_before")
         kill_before = True if kill_before is None else kill_before
 
         service["update"] = {
@@ -70,10 +74,10 @@ def get_config(args) -> EasyDict:
             # INFO: If type is reprovision, have pre-execute, provision, and post-execute
             # all concatenated into a command inside update
             "update": None,
-            "get_version": bb_dsl.parse_dsl(x["up"].get("get_version") or []),
+            "get_version": bb_dsl.parse_dsl(x.up.g("get_version", [])),
             "update_type": update_type,
-            "pre_execute": bb_dsl.parse_dsl(x["up"].get("pre_execute") or []),
-            "post_execute": bb_dsl.parse_dsl(x["up"].get("post_execute") or []),
+            "pre_execute": bb_dsl.parse_dsl(x.up.g("pre_execute", [])),
+            "post_execute": bb_dsl.parse_dsl(x.up.g("post_execute", [])),
             "kill_before": kill_before
         }
 
@@ -98,13 +102,14 @@ def get_config(args) -> EasyDict:
         if cmds is None:
             continue
         for ident, cmd in cmds.items():
+            cmd = objectify(cmd)
             if ident in config["lib"]:
                 ctx = bb_dsl.Ctx(src=library, halt_on_error=True)
                 ctx.error("Library function %s registered twice" % ident, True)
                 # <unreachable>
             config["lib"][ident] = {
-                "body": bb_dsl.parse_dsl(cmd["body"]),
-                "usage": cmd.get("usage") or "<USAGE NOT PROVIDED>",
+                "body": bb_dsl.parse_dsl(cmd.body),
+                "usage": cmd.g("usage", "<USAGE NOT PROVIDED>"),
             }
 
     return objectify(config)
