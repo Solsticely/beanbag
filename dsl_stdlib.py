@@ -9,17 +9,17 @@ logger = logging.getLogger(__name__)
 
 def get_from_scope(ctx, args: list[str], reverse: bool):
     if len(args) != 1:
-        bb_dsl.error_dsl(ctx, "get called with more/less than 1 argument")
+        ctx.error("get called with more/less than 1 argument")
     vname = "NONEX" if len(args) < 1 else args[0]
     val = ctx.query_scope(vname, reverse)
     if val is None:
-        bb_dsl.error_dsl(ctx, "Variable %s is not defined" % vname)
+        ctx.error("Variable %s is not defined" % vname)
         return ["VARIABLE_%s <does not exist>" % vname]
     return [val]
 
 def set_to_scope(ctx, args, reverse: bool):
     if len(args) != 2:
-        bb_dsl.error_dsl(ctx, "set called with more/less than 2 arguments")
+        ctx.error("set called with more/less than 2 arguments")
         return ["VARIABLE_NONEX"]
     vname = args[0]
     val = args[1]
@@ -51,13 +51,13 @@ class DslStdlib:
     async def exec(ctx, args):
         # run empty command
         if len(args) < 1:
-            bb_dsl.error_dsl(ctx, "exec invoked with no arguments")
+            ctx.error("exec invoked with no arguments")
             return []
 
         # find executable
         exec_path = shutil.which(args[0])
         if exec_path is None:
-            bb_dsl.error_dsl(ctx, "could not find executable %s" % args[0])
+            ctx.error("could not find executable %s" % args[0])
             return []
         args[0] = exec_path
 
@@ -108,6 +108,6 @@ async def run_stdlib_func(ctx, cmd, args):
         return None
     result = await getattr(DslStdlib, cmd)(ctx, args)
     if result is None:
-        bb_dsl.error_dsl(ctx, "builtin DSL function {} did not return a result!")
+        ctx.error("builtin DSL function {} did not return a result!")
         return [""]
     return result

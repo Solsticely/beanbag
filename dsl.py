@@ -5,6 +5,7 @@ import os
 import sys
 from pathlib import Path
 import dsl_stdlib
+import tomllib
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ class DslException(Exception):
 
 
 class Ctx:
-    def __init__(self,
+    def __init__(self, *,
                  is_loud: bool = True,
                  halt_on_error: bool = False,
                  src: str = "<inline>",
@@ -49,8 +50,7 @@ class Ctx:
         self.is_inline = is_inline
 
         if not is_inline and config is None:
-            error_dsl(
-                self,
+            self.error(
                 "Tried to make a non-inline context without a reference to a config file. src: %s" % src,
                 True
             )
@@ -76,19 +76,21 @@ class Ctx:
         )
         return ctx
 
-    def recurse(self, call: list):
+    # def recurse(self, call: DslCall):
+    def recurse(self, call, args):
         # args = call[1:]
-        src = self.src + " => %s" % call[0]
+        src = self.src + " => %s" % call.cmd
+        # src = self.src + " => %s" % repr(call)
         log_stdout = self.log_stdout
         if self.recursion_depth == 10:
             self.log_stdout("Recursion depth exceeded stdout limit, suppressing stdout")
             log_stdout = Ctx.__dummy_log
         if self.recursion_depth > 1024:
-            error_dsl(self, "Exceeded recursion limit!", True)
+            self.error("Exceeded recursion limit!", True)
 
         return Ctx(
             is_loud=self.is_loud,
-            halt_on_error=self.halt_on_error, src=src, args=self.args,
+            halt_on_error=self.halt_on_error, src=src, args=args,
             log_stderr=self.log_stderr, log_stdout=log_stdout,
             dry_run=self.dry_run, cwd=self.cwd, config=self.config,
             is_inline=self.is_inline, recursion_depth=self.recursion_depth+1,
@@ -106,119 +108,180 @@ class Ctx:
 
         return None
 
+    def error(self, msg: str, panic=False):
+        logging.error("Trace: %s", self.src)
+        logging.error(msg)
+
+        if self.halt_on_error or panic:
+            raise DslException(msg)
+
     @staticmethod
     def __dummy_log(log):
         pass
 
 
-def error_dsl(ctx, msg, panic=False):
-    logging.error(msg)
-    logging.error("Trace: %s", ctx.src)
-    if ctx.halt_on_error or panic:
-        raise DslException(msg)
+class DslExpr:
+    """
+    A generic class for all DSL expressions
+    """
 
-
-async def run_commands(config, commands, src, working_directory):
-    logging.debug("Running command %s", repr(commands))
-    ctx = Ctx.from_config(config, src, working_directory)
-
-    await eval_value_dsl(ctx, commands)
-
-
-async def eval_value_dsl(ctx, value):
-    # evaluate context concatenation
-    if type(value) is dict:
-        return ctx.args
-
-    # evaluate literals
-    elif type(value) is str:
-        return [value]
-
-    # evaluate nested calls
-    elif type(value) is list:
-        newctx = Ctx.recurse(ctx, value)
-        out = await eval_command_dsl(newctx, value[0], value[1:])
-        return out
-
-    # evaluate an index into the context
-    elif type(value) is float or type(value) is int:
-        value = int(value) - 1  # indexes are from 1
-        if 0 <= value < len(ctx.args):
-            return [ctx.args[value]]
-        error_dsl(ctx, "Tried to index argument #%d. Only %d arguments were given: %s" % (value, len(ctx.args), repr(ctx.args)))
-        return [""]
-
-    # invalid value
-    else:
-        error_dsl(ctx, "Tried to evaluate invalid value %s" % repr(value))
-        return [""]
-
-
-async def eval_command_dsl(ctx, command, call_args):
-    # handle special commands:
-    # no-op command
-    if len(command) == 0:
+    async def evaluate(self, ctx: Ctx) -> list[str]:
         return []
 
-    cmd = command
-    args = []
+    def __repr__(self) -> str:
+        return "[]"
 
-    # Evaluate all arguments
-    for i in call_args:
-        args += await eval_value_dsl(ctx, i)
-
-    logger.debug("Evaluated arguments %s to %s", repr(call_args), args)
-    ctx.args = args
-
-    # run the command
-    # check stdlib for command first
-    result = await dsl_stdlib.run_stdlib_func(ctx, cmd, args)
-    if result is not None:
-        return result
-
-    # check libraries for command
-    if cmd in ctx.config["lib"]:
-        return await eval_value_dsl(ctx, ctx.config["lib"][cmd]["body"])
-
-    # didnt find command!
-    error_dsl(ctx, "Tried to invoke nonexistent command %s" % cmd)
-    return []
+    def __init__(self, ctx: Ctx):
+        pass
 
 
-def normalise_dsl(command, ctx=None, src=None):
+class DslNoop(DslExpr):
+    """
+    A DSL noop command, represented in TOML with an empty array.
+    """
+
+
+class DslArgumentExpansion(DslExpr):
+    """
+    A DSL argument expansion expression, represented in TOML with an empty
+    dictionary.
+
+    Is replaced with all of the arguments to the function being called. None of
+    the arguments are concatenated and are instead each their own item
+    """
+    async def evaluate(self, ctx: Ctx) -> list[str]:
+        return ctx.args
+
+    def __repr__(self) -> str:
+        return "$@"
+
+
+class DslLiteral(DslExpr):
+    """
+    A DSL string literal
+    """
+
+    def __init__(self, ctx: Ctx, value: str):
+        super().__init__(ctx)
+        self.value = value
+
+    async def evaluate(self, ctx: Ctx) -> list[str]:
+        return [self.value]
+
+    def __repr__(self) -> str:
+        return "$"+repr(self.value)
+
+
+class DslArgIndex(DslExpr):
+    """
+    A DSL args array index. Represented in TOML with a number.
+
+    Evaluates to the n-th argument of the calling function.
+    """
+
+    def __init__(self, ctx: Ctx, inx: int):
+        super().__init__(ctx)
+        inx = int(inx)
+        if inx < 1:
+            if inx == 0:
+                logger.error(
+                    "Argument indexes are 1-indexed. Did you mean to use 1 instead?"
+                )
+            ctx.error("Argument index %d smaller than 1" % inx, True)
+        self.inx = inx
+
+    async def evaluate(self, ctx: Ctx) -> list[str]:
+        if len(ctx.args) >= self.inx:
+            return [ctx.args[self.inx-1]]
+
+        ctx.error(
+            "Tried to index argument #%d. Only %d arguments were given: %s" %
+            (self.inx, len(ctx.args), repr(ctx.args))
+        )
+        return [""]
+
+    def __repr__(self) -> str:
+        return "{}"
+
+
+class DslCall(DslExpr):
+    """
+    A DSL function call. Represented in TOML with a dictionary with one item.
+    The key represents the name of the function being called, and the value
+    represents the call arguments.
+    """
+
+    def __init__(self, ctx: Ctx, cmd: str, args: list[DslExpr]):
+        super().__init__(ctx)
+        self.cmd = cmd
+        self.args = args
+
+    async def evaluate(self, ctx: Ctx) -> list[str]:
+        # Evaluate args
+        eval_args = [j for i in self.args for j in await i.evaluate(ctx)]
+        logger.debug("Evaluated call arguments %s to %s", repr(self.args), eval_args)
+        newctx = ctx.recurse(self, eval_args)
+
+        # run the command
+        # check stdlib for command first
+        result = await dsl_stdlib.run_stdlib_func(newctx, self.cmd, eval_args)
+        if result is not None:
+            return result
+
+        # check libraries for command
+        if self.cmd in ctx.config["lib"]:
+            return await ctx.config["lib"][self.cmd]["body"].evaluate(newctx)
+
+        # didnt find command!
+        ctx.error("Tried to invoke nonexistent command %s" % self.cmd)
+        return [""]
+
+    def __repr__(self) -> str:
+        return "%s(%s)" % (self.cmd, ", ".join([repr(i) for i in self.args]))
+
+
+async def run_commands(config, command, src, working_directory):
+    logging.debug("Running command %s", repr(command))
+    ctx = Ctx.from_config(config, src, working_directory)
+
+    await command.evaluate(ctx)
+
+
+def parse_dsl(command, *, src=None, ctx=None) -> DslExpr:
+    # If called nonrecursively, debug the results
     if ctx is None:
         ctx = Ctx(is_inline=True, src=src)
-        result = normalise_dsl(command, ctx, src)
+        result = parse_dsl(command, ctx=ctx, src=src)
         logging.debug("Normalised DSL %s into %s", command, result)
         return result
+
     # a concatenation command
     if type(command) is list:
-        if len(command) == 0:
-            return []
+        return DslCall(ctx, "cat", [parse_dsl(i, ctx=ctx, src=src) for i in command])
 
-        return ["cat"] + [normalise_dsl(i, ctx, src) for i in command]
     # calls, or special commands
     elif type(command) is dict:
         # special context expand
         if len(command) == 0:
-            return {}
+            return DslArgumentExpansion(ctx)
         # a regular call
         elif len(command) == 1:
             cmd = [*command][0]
             args = command[cmd]
             if type(args) is str:
-                args = [args]
+                args = [DslLiteral(ctx, args)]
             else:
-                args = [normalise_dsl(i, ctx, src) for i in args]
-            return [cmd]+args
+                args = [parse_dsl(i, ctx=ctx, src=src) for i in args]
+            return DslCall(ctx, cmd, args)
+        # TODO: implement IF calls
         else:
-            error_dsl(ctx, "DSL call included more than one function", True)
+            ctx.error("DSL call included more than one function", True)
     # argument indexes
     elif type(command) is int:
-        return command
+        return DslArgIndex(ctx, command)
     # literals (?)
     elif type(command) is str:
-        return command
+        return DslLiteral(ctx, command)
     # unknown type
     else:
-        error_dsl(ctx, "Unexpected type %s in command: %s" % (type(command), repr(command)), True)
+        ctx.error("Unexpected type %s in command: %s" % (type(command), repr(command)), True)

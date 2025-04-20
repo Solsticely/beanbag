@@ -107,10 +107,10 @@ def get_config(args):
             # INFO: If type is reprovision, have pre-execute, provision, and post-execute
             # all concatenated into a command inside update
             "update": None,
-            "get_version": bb_dsl.normalise_dsl(x["up"].get("get_version") or []),
+            "get_version": bb_dsl.parse_dsl(x["up"].get("get_version") or []),
             "update_type": update_type,
-            "pre_execute": bb_dsl.normalise_dsl(x["up"].get("pre_execute") or []),
-            "post_execute": bb_dsl.normalise_dsl(x["up"].get("post_execute") or []),
+            "pre_execute": bb_dsl.parse_dsl(x["up"].get("pre_execute") or []),
+            "post_execute": bb_dsl.parse_dsl(x["up"].get("post_execute") or []),
             "kill_before": kill_before
         }
 
@@ -137,10 +137,10 @@ def get_config(args):
         for ident, cmd in cmds.items():
             if ident in config["lib"]:
                 ctx = bb_dsl.Ctx(src=library, halt_on_error=True)
-                bb_dsl.error_dsl(ctx, "Library function %s registered twice" % ident, True)
+                ctx.error("Library function %s registered twice" % ident, True)
                 # <unreachable>
             config["lib"][ident] = {
-                "body": bb_dsl.normalise_dsl(cmd["body"]),
+                "body": bb_dsl.parse_dsl(cmd["body"]),
                 "usage": cmd.get("usage") or "<USAGE NOT PROVIDED>",
             }
 
@@ -218,7 +218,7 @@ def config_parse_dsl(config_section):
     envs = config_section.get("envs") or {}
 
     return {
-        "cmd": bb_dsl.normalise_dsl(command),
+        "cmd": bb_dsl.parse_dsl(command),
         "env": envs
     }
 
