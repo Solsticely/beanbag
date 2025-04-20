@@ -1,0 +1,29 @@
+[service]
+name="FrankenPHP"
+id="caddy"
+
+[storage]
+datafiles = ["Caddyfile"]
+
+[provision]
+commands = [
+  { download_github_artifact = [
+    "dunglas/frankenphp",
+    ["frankenphp-linux-", { get = "arch" }],
+    "./caddy"
+  ] },
+  { sh = "chmod +x ./caddy" }
+]
+
+[kill]
+commands = { sh = "./caddy stop" }
+
+[run]
+on_exit = "kill_and_retry"
+commands = { exec = ["authbind", "./caddy", "run"] }
+
+[update]
+type = "reprovision"
+get_version = { sh = "caddy --version" }
+kill_before = true
+
