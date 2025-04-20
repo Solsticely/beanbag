@@ -61,6 +61,7 @@ for efficient deployment. The structure of said folder is as follows
 [service]
 name="Caddy server"
 id="caddy"
+envs = { CADDY_ADMIN_INTERFACE_BIND_ADDR = "192.168.2.144:19191" }
 
 [storage]
 datafiles = ["db/db.sqlite", "uploads/"] # relative globs
@@ -199,7 +200,7 @@ inside of the work directory. These are all special functions!
 * `timestamp` - Will be substituted with the unix timestamp. This is a special
   function!
 * `datetime` - Will return a user-friendly time/date. This is a special function!
-* `dbg` - Logs all of its arguments to the root console. This is a special
+* `echo` - Logs all of its arguments to the root console. This is a special
   function!
 
 ### Manipulation
@@ -219,6 +220,9 @@ inside of the work directory. These are all special functions!
 * `capture` - Takes in a pattern and a string, and returns every substring that
   matches the pattern in a multiline string. This is a special function!
 * `firstline` - Returns the first line of the provided input
+* `no_tty_log` - Suppresses log output to the terminal. This method notifies the
+  terminal about what its doing to prevent being used to hide code inside
+  service files.
 
 
 ### Assertion and formatting
@@ -251,7 +255,7 @@ inside of the work directory. These are all special functions!
 
 * `unvault` - Decrypts a vault <!-- TODO: figure this out -->
 * `randomstr` - Generates a string with alphanumeric characters of a provided
-  length. `["randomstr", 20]` can turn into `A01LT7XRDaIZKLaQdjqs`. First letter
+  length, (default 40.) `["randomstr", 20]` can turn into `A01LT7XRDaIZKLaQdjqs`. First letter
   is guaranteed to not be a number.
 <!-- * `randomint` - Generates a random integer from zero to a provided maximum, or -->
   <!-- 340282366920938463463374607431768211455. -->
