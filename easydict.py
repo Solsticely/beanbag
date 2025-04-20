@@ -2,10 +2,12 @@ class EasyDict(dict):
     def __init__(self, t: dict):
         for i in t:
             val = t[i]
+            if hasattr(self, i):
+                continue
             setattr(self, i, val)
         super().__init__(t)
 
-    def g(self, key: str, default = None):
+    def g(self, key: str, default=None):
         return self[key] if key in self else default
 
 
