@@ -318,11 +318,11 @@ def parse_dsl(command, *, src=None, ctx=None) -> DslExpr:
         return result
 
     # a concatenation command
-    if type(command) is list:
+    if isinstance(command, list):
         return DslCall(ctx, "cat", [parse_dsl(i, ctx=ctx, src=src) for i in command])
 
     # calls, or special commands
-    elif type(command) is dict:
+    elif isinstance(command, dict):
         keys = [*command]
         # special context expand
         if len(keys) == 0:
@@ -357,10 +357,10 @@ def parse_dsl(command, *, src=None, ctx=None) -> DslExpr:
         else:
             ctx.error("Did not recognise special DSL call with arguments {}" % keys, True)
     # argument indexes
-    elif type(command) is int:
+    elif isinstance(command, int):
         return DslArgIndex(ctx, command)
     # literals
-    elif type(command) is str:
+    elif isinstance(command, str):
         return DslLiteral(ctx, command)
     # unknown type
     else:
