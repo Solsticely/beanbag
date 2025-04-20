@@ -5,6 +5,9 @@ class EasyDict(dict):
             setattr(self, i, val)
         super().__init__(t)
 
+    def g(self, key: str, default = None):
+        return self[key] if key in self else default
+
 
 def objectify(t):
     if type(t) is dict:
