@@ -3,6 +3,10 @@ import dsl as bb_dsl
 import argparse
 from pathlib import Path
 from easydict import EasyDict, objectify
+import security
+
+import logging as i_am_intentionally_using_logging_instead_of_logger
+logger = i_am_intentionally_using_logging_instead_of_logger.getLogger(__name__)
 
 
 def get_config(args) -> EasyDict:
@@ -17,9 +21,10 @@ def get_config(args) -> EasyDict:
         "max_value_len": 1024*1024*20,  # 20MiO
         "lib": {},  # Is filled later on
         "args": args,
-        "dry_run": args.dry_run
+        "dry_run": args.dry_run,
+        "selected_services": set(),  # Is filled later on
     }
-    # TODO: validate that service ids are valid directory names
+
     # TODO: validate all paths are relative and don't escape
     # TODO: generalise loading, implement loading from zip
     services = config["config_path"].glob("services/*.toml")
@@ -95,6 +100,15 @@ def get_config(args) -> EasyDict:
 
         config["services"][srv_id] = service
 
+    config["selected_services"] = args.service or config["services"].keys()
+    extra = config["selected_services"] - config["services"].keys()
+    extra = set(extra)
+    if len(extra) > 0:
+        logger.critical("Selected services don't exist: %s", ", ".join(extra))
+        security.halt()
+
+    # TODO: validate that service ids are valid directory names
+
     libraries = config["config_path"].glob("library/*.toml")
     for library in libraries:
         lib_toml = tomllib.load(open(library, "rb"))
@@ -136,32 +150,33 @@ def get_args_and_config():
                         services' stdout and stderr to the TTY and to log
                         records, instead of only outputting to the log records.
                         """)
-
     cmds = parser.add_subparsers(title="Command", dest="command", help="command help", required=True)
 
     # provisioning
-    # TODO: add ability to provision or run only a single service
-    # cmd_prov = cmds.add_parser("provision", aliases="p prov s setup".split())
-    cmd_prov = cmds.add_parser("provision")
+    cmd_prov = cmds.add_parser("provision", aliases="p prov s setup".split())
+    # cmd_prov = cmds.add_parser("provision")
     cmd_prov.add_argument("--force-provision", "-f", action="store_true",
                           help="""Force a provision, even if the app
                           directory already exists""")
 
     # update subcommand
-    # cmd_update = cmds.add_parser("update", aliases="u upgrade upgr".split())
-    cmd_update = cmds.add_parser("update")
-    cmd_update.add_argument("service")  # TODO: add specific-service updating
+    cmd_update = cmds.add_parser("update", aliases="u upgrade upgr".split())
+    # cmd_update = cmds.add_parser("update")
 
     # run subcommand
-    # TODO: add ability to provision, run or package a subset of all services
-    # cmd_run = cmds.add_parser("run", aliases="r execute x".split())
-    cmd_run = cmds.add_parser("run")
+    cmd_run = cmds.add_parser("run", aliases="r execute x".split())
+    # cmd_run = cmds.add_parser("run")
     (cmd_run,)
 
     # package subcommand
-    # cmd_pack = cmds.add_parser("package", aliases="pack zip z".split())
-    cmd_pack = cmds.add_parser("package")
+    cmd_pack = cmds.add_parser("package", aliases="pack zip z".split())
+    # cmd_pack = cmds.add_parser("package")
     (cmd_pack,)
+
+    for i in [cmd_update, cmd_prov, cmd_run, cmd_pack]:
+        i.add_argument("service", nargs="*", default=None,
+                       help="""The services to run the operation on. Specifying
+                       no services defaults to all services""")
 
     # logger.debug(parser.parse_args())
     return get_config(parser.parse_args())

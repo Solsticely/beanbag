@@ -4,6 +4,7 @@ import time
 import logging
 import dsl as bb_dsl
 import config as bb_conf
+import security
 
 logger = logging.getLogger("beanbag")
 
@@ -13,7 +14,7 @@ ERRORS = {
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG, format="[%(asctime)s %(levelname)-7s %(name)-8s] %(message)s")
+    logging.basicConfig(level=logging.DEBUG, format="[%(asctime)s %(levelname)-8s %(name)-8s] %(message)s")
 
     # parse arguments
     # if len(sys.argv) <= 1:
@@ -51,7 +52,7 @@ async def provision(config, warn_existing_datafiles=False):
             logger.warning("Provisioning over the previous app directory")
 
     provis_path = config.provis_path
-    services = config.services
+    services = config.selected_services
     logger.info("Provisioning to %s...", provis_path)
 
     # set up directory structure
@@ -95,7 +96,10 @@ async def provision(config, warn_existing_datafiles=False):
 def is_provisioned(config):
     # intentionally not using is_dir to raise natural error for nondirectory
     # entries
-    return config.provis_path.exists()
+    for id in config.selected_services:
+        if not security.workdir(config, id).exists():
+            return False
+    return True
 
 
 def refresh_symlinks(config):
@@ -128,7 +132,7 @@ async def run(config):
     # TODO: delete all mutexes in mutexes/ folder if they aren't locked already
     # TODO: start job that watches for globfile creation and updates symlinks
     # Populate jobs
-    jobs = [service_worker_loop(config, id) for id in config.services]
+    jobs = [service_worker_loop(config, id) for id in config.selected_services]
     async def init_done(): logger.info("Started all services!")
     jobs.append(init_done())
 

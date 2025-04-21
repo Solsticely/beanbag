@@ -1,5 +1,6 @@
 from pathlib import Path
 from easydict import EasyDict
+import sys
 
 import logging as i_am_intentionally_using_logging_instead_of_logger
 logger = i_am_intentionally_using_logging_instead_of_logger.getLogger(__name__)
@@ -29,3 +30,7 @@ def authorise_workdir_path(ctx, unsanitised_path: Path, *, soft: bool = False) -
 
 def workdir(config: EasyDict, service: str) -> Path:
     return (config.provis_path/"workdirs"/service).resolve()
+
+
+def halt(code: int = 1):
+    sys.exit(code)
