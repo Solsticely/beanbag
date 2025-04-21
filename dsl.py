@@ -11,6 +11,9 @@ import logging as i_am_intentionally_using_logging_instead_of_logger
 logger = i_am_intentionally_using_logging_instead_of_logger.getLogger(__name__)
 
 
+DIAGNOSIS_LOG_LENGTH = 4096
+
+
 class DslException(Exception):
     pass
 
@@ -30,7 +33,8 @@ class Ctx:
                  recursion_depth: int = 0,
                  scope: list[dict] = None,
                  extra_output: list[list[str]] = None,
-                 env_vars: dict[str, str] = {}
+                 env_vars: dict[str, str] = {},
+                 log_file=None,
                  ):
 
         extra_output = [[""]] if extra_output is None else extra_output
@@ -49,6 +53,7 @@ class Ctx:
         self.is_loud = is_loud
         self.is_inline = is_inline
         self.env_vars = env_vars
+        self.log_file = log_file
 
         if not is_inline and config is None:
             self.error(
@@ -72,14 +77,15 @@ class Ctx:
         }, {}]
 
     @staticmethod
-    def from_config(config: dict, src: str, working_directory: Path, env: dict[str, str]):
+    def from_config(config: dict, src: str, working_directory: Path, env: dict[str, str], log_file):
         src = config.command.upper() + " " + src
         ctx = Ctx(
             is_loud=config.is_loud,
             halt_on_error=config.halt_on_error, src=src, args=["__main__"],
             can_log_err=True, can_log_out=True, dry_run=config.dry_run,
             cwd=working_directory, config=config, is_inline=False,
-            recursion_depth=0, scope=None, extra_output=[[""]], env_vars = env
+            recursion_depth=0, scope=None, extra_output=[[""]], env_vars = env,
+            log_file=log_file
         )
         return ctx
 
@@ -103,7 +109,7 @@ class Ctx:
             dry_run=self.dry_run, cwd=self.cwd, config=self.config,
             is_inline=self.is_inline, recursion_depth=self.recursion_depth+1,
             scope=self.scope+[{}], extra_output=self.extra_output,
-            env_vars=self.env_vars
+            env_vars=self.env_vars, log_file=self.log_file
         )
 
     def query_scope(self, name: str, reverse=False) -> str:
@@ -134,9 +140,15 @@ class Ctx:
     # TODO: make logging output to config-defined log facilities too
     def __generic_log(self, condition: bool, log: str):
         self.extra_output[0][0] += log
+        self.extra_output = self.extra_output[max(0, len(self.extra_output)-DIAGNOSIS_LOG_LENGTH):]
+
+        if condition:
+            self.log_file.write(log)
+            self.log_file.flush()
         log = log.strip()
         if condition and self.is_loud and len(log) != 0:
             logger.info("%s: %s", self.src, printutils.shrink_lines(log))
+
 
 class DslExpr:
     """
@@ -294,7 +306,7 @@ class DslCall(DslExpr):
         return "%s(%s)" % (self.cmd, ", ".join([repr(i) for i in self.args]))
 
 
-async def run_commands(config, service, command, working_directory: Path | None = None, extra_envs: list[dict[str, str]] = []):
+async def run_commands(config, service, command, log_file, working_directory: Path | None = None, extra_envs: list[dict[str, str]] = []):
     working_directory = security.workdir(config, service) if working_directory is None else working_directory
     cmd, env = command.cmd, command.env
 
@@ -306,7 +318,7 @@ async def run_commands(config, service, command, working_directory: Path | None 
             merged_env[k] = v
 
     logger.debug("Running command %s", repr(cmd))
-    ctx = Ctx.from_config(config, service, working_directory, merged_env)
+    ctx = Ctx.from_config(config, service, working_directory, merged_env, log_file)
 
     await cmd.evaluate(ctx)
 

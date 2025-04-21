@@ -28,8 +28,9 @@ def authorise_workdir_path(ctx, unsanitised_path: Path, *, soft: bool = False) -
         ctx.error(str(error), True)
 
 
-def workdir(config: EasyDict, service: str) -> Path:
-    return (config.provis_path/"workdirs"/service).resolve()
+def workdir(config: EasyDict, service: str, subdir: str = "workdirs") -> Path:
+    assert subdir in "datafiles logs mutexes workdirs".split()
+    return (config.provis_path/subdir/service).resolve()
 
 
 def halt(code: int = 1):

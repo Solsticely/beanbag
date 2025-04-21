@@ -5,6 +5,7 @@ import logging
 import dsl as bb_dsl
 import config as bb_conf
 import security
+import printutils
 
 logger = logging.getLogger("beanbag")
 
@@ -65,7 +66,7 @@ async def provision(config, warn_existing_datafiles=False):
         (provis_path/p).resolve().mkdir(parents=False, exist_ok=True)
 
     # make a directory for each service id in folders workdirs and datafiles
-    for p in 'workdirs datafiles'.split():
+    for p in 'workdirs datafiles logs'.split():
         for s in services:
             (provis_path/p/s).resolve().mkdir(parents=False, exist_ok=True)
 
@@ -84,8 +85,10 @@ async def provision(config, warn_existing_datafiles=False):
                     outstream.write(instream.read())  # TODO: streaming copy
 
     for id in services:
+        logfile = printutils.make_log(config, id)
         service = config.services[id]
-        await bb_dsl.run_commands(config, id, service.provision)
+        await bb_dsl.run_commands(config, id, service.provision, logfile)
+        logfile.close()
 
     # refresh symlinks
     refresh_symlinks(config)
@@ -110,19 +113,22 @@ def refresh_symlinks(config):
 async def service_worker_loop(config, id: str):
     service = config.services[id]
     retry = service.run.on_exit == "retry"
+    logfile = printutils.make_log(config, id)
 
     while True:
-        await bb_dsl.run_commands(config, id, service.run)
+        await bb_dsl.run_commands(config, id, service.run, logfile)
         logger.warning("Service %s stopped running!", service.name)
 
         if retry:
             logger.info("Killing service %s", service.name)
-            await bb_dsl.run_commands(config, id, service.kill, extra_envs=[service.run.env])
+            await bb_dsl.run_commands(config, id, service.kill, logfile, extra_envs=[service.run.env])
 
             await asyncio.sleep(9)
             logger.info("Starting service %s", service.name)
         else:
             break
+
+    logfile.close()
 
 
 async def run(config):

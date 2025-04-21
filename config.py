@@ -154,24 +154,18 @@ def get_args_and_config():
 
     # provisioning
     cmd_prov = cmds.add_parser("provision", aliases="p prov s setup".split())
-    # cmd_prov = cmds.add_parser("provision")
     cmd_prov.add_argument("--force-provision", "-f", action="store_true",
                           help="""Force a provision, even if the app
                           directory already exists""")
 
     # update subcommand
     cmd_update = cmds.add_parser("update", aliases="u upgrade upgr".split())
-    # cmd_update = cmds.add_parser("update")
 
     # run subcommand
     cmd_run = cmds.add_parser("run", aliases="r execute x".split())
-    # cmd_run = cmds.add_parser("run")
-    (cmd_run,)
 
     # package subcommand
     cmd_pack = cmds.add_parser("package", aliases="pack zip z".split())
-    # cmd_pack = cmds.add_parser("package")
-    (cmd_pack,)
 
     for i in [cmd_update, cmd_prov, cmd_run, cmd_pack]:
         i.add_argument("service", nargs="*", default=None,
