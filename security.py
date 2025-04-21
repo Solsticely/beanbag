@@ -14,7 +14,7 @@ def authorise_path(cwd: Path, unsanitised_path: Path, *, soft: bool = False) -> 
         if soft:
             return None
         err = "Path traversal: Tried to authorise path %s outside of all authorised directories"
-        logger.error(err, path)
+        logger.critical(err, path)
         raise ValueError(err % path)
 
     # logger.debug("Authorised path %s as %s", unsanitised_path, path)

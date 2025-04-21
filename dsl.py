@@ -118,16 +118,18 @@ class Ctx:
         return None
 
     def error(self, msg: str, panic=False):
-        logger.error("Trace: %s", self.src)
-        logger.error(msg)
+        log_level = logger.critical if self.halt_on_error or panic else logger.error
+        log_level("Trace: %s", self.src)
+        log_level(msg)
 
         if self.halt_on_error or panic:
-            logger.error("STDOUT+ERR: %s", self.extra_output[0][0])
+            logger.critical("STDOUT+ERR: %s", self.extra_output[0][0])
             self.extra_output[0][0] = ""
             raise DslException(msg)
 
         elif len(self.extra_output[0][0].strip()) != 0:
-            logger.error("use --show-extra-output-on-error to show extra output")
+            # TODO: implement --show-log-on-error
+            logger.error("use --show-log-on-error to show extra output")
 
     # TODO: make logging output to config-defined log facilities too
     def __generic_log(self, condition: bool, log: str):
@@ -226,7 +228,7 @@ class DslArgIndex(DslExpr):
         inx = int(inx)
         if inx < 1:
             if inx == 0:
-                logger.error(
+                logger.info(
                     "Argument indexes are 1-indexed. Did you mean to use 1 instead?"
                 )
             ctx.error("Argument index %d smaller than 1" % inx, True)

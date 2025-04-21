@@ -78,12 +78,13 @@ async def provision(config, warn_existing_datafiles=False):
     # any existing files.
     # TODO: make this a hard symlink that is read-only.
     for s in services:
-        for filepath, fileread in services[s].setupfiles.items():
+        for filepath, fileread in config.services[s].setupfiles.items():
             with fileread() as instream:
                 with open((provis_path/'workdirs'/s/filepath).resolve(), "wb") as outstream:
                     outstream.write(instream.read())  # TODO: streaming copy
 
-    for id, service in services.items():
+    for id in services:
+        service = config.services[id]
         await bb_dsl.run_commands(config, id, service.provision)
 
     # refresh symlinks
@@ -126,8 +127,8 @@ async def service_worker_loop(config, id: str):
 
 async def run(config):
     if not is_provisioned(config):
-        logger.error(ERRORS["no_appdir"] + "Did you forget to run ‘beanbag.py provision’ first?")
-        exit(1)
+        logger.critical(ERRORS["no_appdir"] + "Did you forget to run ‘beanbag.py provision’ first?")
+        security.halt()
 
     # TODO: delete all mutexes in mutexes/ folder if they aren't locked already
     # TODO: start job that watches for globfile creation and updates symlinks
@@ -148,15 +149,15 @@ async def run(config):
 def update(config):
     # TODO: grab mutex
     if not is_provisioned(config):
-        logger.error(ERRORS["no_appdir"])
-        exit(1)
+        logger.critical(ERRORS["no_appdir"])
+        security.halt()
     pass  # TODO: implement updating
 
 
 def extract_deployment(config):
     if not is_provisioned():
-        logger.error(ERRORS["no_appdir"])
-        exit(1)
+        logger.critical(ERRORS["no_appdir"])
+        security.halt()
     # TODO: extract deployment
     pass
 
