@@ -20,7 +20,7 @@ commands = { exec = ["./caddy", "stop"] }
 
 [run]
 on_exit = "retry"
-commands = { exec = ["authbind", "./caddy", "run"] }
+commands = { exec = ["./caddy", "run"] }
 
 [update]
 type = "reprovision"

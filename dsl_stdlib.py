@@ -55,6 +55,15 @@ def set_to_scope(ctx, args, reverse: bool):
     return [args[1]]
 
 
+def mkdir(ctx, args: list[str], parents: bool):
+    args = checkargs(ctx, args, 1, 1, "noneret")
+    if args is None:
+        return [""]
+
+    folder_path = security.authorise_workdir_path(ctx, Path(args[0]))
+    folder_path.mkdir(parents=parents, exist_ok=True)
+    return [args[0]]
+
 class DslStdlib:
     @staticmethod
     async def get(ctx, args):
@@ -75,7 +84,7 @@ class DslStdlib:
     @staticmethod
     async def echo(ctx, args):
         log = await DslStdlib.cat(ctx, args)
-        ctx.log_stderr(log[0])
+        ctx.log_stderr(log[0] + "\n")
         return [""]
 
     @staticmethod
@@ -146,6 +155,14 @@ class DslStdlib:
         return ["".join(result)]
 
     @staticmethod
+    async def mkdir(ctx, args):
+        return mkdir(ctx, args, False)
+
+    @staticmethod
+    async def mkdirp(ctx, args):
+        return mkdir(ctx, args, True)
+
+    @staticmethod
     async def exec(ctx, args):
         args = checkargs(ctx, args, 1, None, "noneret")
         if args is None:
@@ -191,6 +208,7 @@ class DslStdlib:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             stdin=asyncio.subprocess.DEVNULL,
+            env=ctx.env_vars,
             limit=max_len,
             cwd=ctx.cwd
         )

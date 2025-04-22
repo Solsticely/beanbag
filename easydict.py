@@ -2,6 +2,8 @@ class EasyDict(dict):
     def __init__(self, t: dict):
         for i in t:
             val = t[i]
+            if type(i) is not str:
+                continue
             if hasattr(self, i):
                 continue
             setattr(self, i, val)

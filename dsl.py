@@ -70,8 +70,13 @@ class Ctx:
     @staticmethod
     def get_empty_scope(config) -> list[dict]:
         # TODO: add all global scope items
+        ARCH_REGEXES = {
+            "x86_64": r"(amd64|x86[-_\s]64)",  # TODO: add more arch names
+        }
+        machine = os.uname().machine
         return [{
-            "arch": os.uname().machine,
+            "arch": machine,
+            "arch_names": ARCH_REGEXES.get(machine) or machine,
             "py_exec": sys.executable,
             "shell_path": pwd.getpwuid(os.getuid()).pw_shell or shutil.which("bash") or shutil.which("sh")
         }, {}]
@@ -121,6 +126,9 @@ class Ctx:
             if name in self.scope[i]:
                 return self.scope[i][name]
 
+        if name in self.env_vars:
+            return self.env_vars[name]
+
         return None
 
     def error(self, msg: str, panic=False):
@@ -128,7 +136,7 @@ class Ctx:
         log_level("Trace: %s", self.src)
         log_level(msg)
 
-        if self.halt_on_error or panic:
+        if self.halt_on_error or panic or self.config.show_log_on_err:
             logger.critical("STDOUT+ERR: %s", self.extra_output[0][0])
             self.extra_output[0][0] = ""
             raise DslException(msg)

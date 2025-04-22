@@ -75,9 +75,6 @@ async def provision(config, warn_existing_datafiles=False):
         (provis_path/'logs'/(s+".log")).touch()
 
     # copy over all setupfiles from beanbag/services/*.setupfiles/
-    # in case of a reprovision, we will warn the user instead and then override
-    # any existing files.
-    # TODO: make this a hard symlink that is read-only.
     for s in services:
         for filepath, fileread in config.services[s].setupfiles.items():
             with fileread() as instream:

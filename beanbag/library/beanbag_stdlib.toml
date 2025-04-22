@@ -32,10 +32,15 @@ body = [
       { get = "arch" },
       "-unknown-linux-musl"
     ] ] },
+    { chmod = [ "+x", "./jaq" ] },
     { echo = [ "Jaq binary cached!" ] },
   ] },
-  { sh = [ "printf -- '%s' ", { shquote = [ 2 ] }, ' | jaq -- ', { shquote = [ 1 ] }, " | tee" ] }
+  { sh = [ "printf -- '%s' ", { shquote = [ 2 ] }, ' | ./jaq -- ', { shquote = [ 1 ] }, " | tee" ] }
 ]
+
+[command.chmod]
+usage = "<permission> [<file>]+"
+body = { exec = [ "chmod", {} ] }
 
 [command.sh]
 usage = "<shell input>"

@@ -23,12 +23,14 @@ def get_config(args) -> EasyDict:
         "args": args,
         "dry_run": args.dry_run,
         "selected_services": set(),  # Is filled later on
+        "show_log_on_err": args.show_log_on_error,
     }
 
     # TODO: validate all paths are relative and don't escape
     # TODO: generalise loading, implement loading from zip
     services = config["config_path"].glob("services/*.toml")
     for srv_path in services:
+        print(srv_path)
         srv_toml = tomllib.load(open(srv_path, "rb"))
 
         # shorten index path: instead of `srv_toml["service"]["id"]` do
@@ -87,18 +89,20 @@ def get_config(args) -> EasyDict:
         }
 
         # grab setupfiles
-        setupfiles = config["config_path"] / "services" / (srv_path.name + ".setupfiles")
+        setupfiles = config["config_path"] / "services" / (srv_path.stem + ".setupfiles")
 
         # don't check if its a directory so we raise an OS error if it isnt
+        # TODO: empty directories
         if setupfiles.exists():
-            for (root, dirs, files) in setupfiles.walk(follow_symlinks=True):
-                # TODO: empty directories
-                for file in files:
-                    filepath = root/file
-                    filepath_capture = filepath.resolve()
-                    service["setupfiles"][filepath] = lambda: open(filepath_capture, "rb")
+            for i in setupfiles.glob("**"):
+                if i.is_dir():
+                    continue
+                filepath_capture = i.resolve()
+                filepath_relative = i.relative_to(setupfiles)
+                service["setupfiles"][filepath_relative] = lambda: open(filepath_capture, "rb")
 
         config["services"][srv_id] = service
+        print(config["services"][srv_id]["setupfiles"])
 
     config["selected_services"] = args.service or config["services"].keys()
     extra = config["selected_services"] - config["services"].keys()
@@ -111,6 +115,7 @@ def get_config(args) -> EasyDict:
 
     libraries = config["config_path"].glob("library/*.toml")
     for library in libraries:
+        # TODO: implement a way for the user to see which toml file has an error
         lib_toml = tomllib.load(open(library, "rb"))
         cmds = lib_toml.get("command")
         if cmds is None:
@@ -150,22 +155,26 @@ def get_args_and_config():
                         services' stdout and stderr to the TTY and to log
                         records, instead of only outputting to the log records.
                         """)
+    parser.add_argument("--show-log-on-error", action="store_true", help="""
+                        Print the omitted stdout log to the terminal on error.
+                        """)
+
     cmds = parser.add_subparsers(title="Command", dest="command", help="command help", required=True)
 
     # provisioning
-    cmd_prov = cmds.add_parser("provision", aliases="p prov s setup".split())
+    cmd_prov = cmds.add_parser("provision")
     cmd_prov.add_argument("--force-provision", "-f", action="store_true",
                           help="""Force a provision, even if the app
                           directory already exists""")
 
     # update subcommand
-    cmd_update = cmds.add_parser("update", aliases="u upgrade upgr".split())
+    cmd_update = cmds.add_parser("update")
 
     # run subcommand
-    cmd_run = cmds.add_parser("run", aliases="r execute x".split())
+    cmd_run = cmds.add_parser("run")
 
     # package subcommand
-    cmd_pack = cmds.add_parser("package", aliases="pack zip z".split())
+    cmd_pack = cmds.add_parser("package")
 
     for i in [cmd_update, cmd_prov, cmd_run, cmd_pack]:
         i.add_argument("service", nargs="*", default=None,

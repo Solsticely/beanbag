@@ -289,7 +289,7 @@ There are some immutable built-in global variables:
 |`username`| Result of `whoami` | `jackblack` |
 |`bin_path`| Location where beanbag's accompanying binaries are stored | `/home/jackblack/maintenance/beanbag/bins/` |
 |`arch`| Result of `os.uname().machine` | `x86_64`|
-|`arch_names`| Regex pattern to match alternative architecture names, or just `arch` if found none|`amd64|x86[-_\s]64`|
+|`arch_names`| Regex pattern to match alternative architecture names, or just `arch` if found none| `amd64|x86[-_\s]64` |
 |`os`| Result of `sys.platform` | `linux`|
 |`nodename`| Result of `os.uname().nodename`| `jackblack-pc` |
 

@@ -1,0 +1,54 @@
+[service]
+name = "Ntfy"
+id = "ntfy"
+
+[service.envs]
+NTFY_BASE_URL = "https://ntfy.ratbertoe.gay"
+NTFY_LISTEN_HTTP = "localhost:5088"
+NTFY_ATTACHMENT_CACHE_DIR = "./attachment_cache/"
+NTFY_BEHIND_PROXY = "true"
+NTFY_WEB_PUSH_FILE = "./webpush.db"
+NTFY_WEB_PUSH_EMAIL_ADDRESS = "abuse@batshit.site"
+NTFY_WEB_PUSH_PUBLIC_KEY = "BDcJVDw19w1xLvT0JAb1z6Wdm6gkI6dNckhC4WXpu2r8wtPjijRoX2DNmWILd-3qeDEzoznJcgFrxKdSw7NYooI"
+NTFY_WEB_PUSH_PRIVATE_KEY = "qeMHGQO84CPP_8hYVdMm5e4bg9YEWmRTV2du3b3f_p8"
+NTFY_LOG_FORMAT = "json"
+NTFY_AUTH_FILE = "./auth.db"
+NTFY_AUTH_DEFAULT_ACCESS = "write-only"
+NTFY_CACHE_FILE = "./cache.db"
+ntfy_uname = "agneaudmin"
+NTFY_PASSWORD = "Arn83KcsClriwkX"
+
+[storage]
+datafiles = ["./webpush.db", "./auth.db"]
+
+[provision]
+commands = [
+  { download_github_artifact = [
+    "binwiederhier/ntfy",
+    ['ntfy_.+_linux_', { get = "arch_names" }, '.tar.gz'],
+    'ntfy.tar.gz'
+  ] },
+  # TODO: tar!
+  { sh = "cat ./ntfy.tar.gz | gunzip | tar x --strip=1" },
+  { mkdirp = "./attachment_cache" },
+  # Start NTFY server for a few seconds, and exit, to create all databases
+  # for first provision. We need this to add the users later
+  { sh = "./ntfy serve & (sleep 2; killall ntfy)" },
+  # TODO: make get also query env vars
+  { exec = ["./ntfy", "user", "a", "--role=admin", { get = "ntfy_uname" }] },
+]
+
+[kill]
+commands = { sh = "killall ntfy" }
+
+[run]
+on_exit = "retry"
+commands = [
+  { exec = ["./ntfy", "serve"] }
+]
+
+[update]
+type = "reprovision"
+get_version = { sh = "./ntfy -h | tail -2 | head -1" }
+kill_before = true
+
