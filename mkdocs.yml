@@ -1,0 +1,10 @@
+site_name: BeanBag Docs
+
+nav:
+  - Home: index.md
+  - Configuration: beanbag.md
+  - Usage: commands.md
+  - Work directory: work-dir.md
+
+theme:
+  name: terminal
