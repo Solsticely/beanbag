@@ -21,6 +21,7 @@ class DslException(Exception):
 class Ctx:
     def __init__(self, *,
                  is_loud: bool = True,
+                 is_trace: bool = False,
                  halt_on_error: bool = False,
                  src: str = "<inline>",
                  args: list = ["__main__"],
@@ -51,6 +52,7 @@ class Ctx:
         self.cwd = cwd
         self.scope = Ctx.get_empty_scope(config) if scope is None else scope
         self.is_loud = is_loud
+        self.is_trace = is_trace
         self.is_inline = is_inline
         self.env_vars = env_vars
         self.log_file = log_file
@@ -85,7 +87,7 @@ class Ctx:
     def from_config(config: dict, src: str, working_directory: Path, env: dict[str, str], log_file):
         src = config.command.upper() + " " + src
         ctx = Ctx(
-            is_loud=config.is_loud,
+            is_loud=config.is_loud, is_trace=config.is_trace,
             halt_on_error=config.halt_on_error, src=src, args=["__main__"],
             can_log_err=True, can_log_out=True, dry_run=config.dry_run,
             cwd=working_directory, config=config, is_inline=False,
@@ -108,7 +110,7 @@ class Ctx:
             self.error("Exceeded recursion limit!", True)
 
         return Ctx(
-            is_loud=self.is_loud,
+            is_loud=self.is_loud, is_trace=self.is_trace,
             halt_on_error=self.halt_on_error, src=src, args=args,
             can_log_err=self.can_log_err, can_log_out=can_log_out,
             dry_run=self.dry_run, cwd=self.cwd, config=self.config,
@@ -154,9 +156,8 @@ class Ctx:
             self.log_file.write(log)
             self.log_file.flush()
         log = log.strip()
-        if condition and self.is_loud and len(log) != 0:
+        if (self.is_trace or (condition and self.is_loud)) and len(log) != 0:
             logger.info("%s: %s", self.src, printutils.shrink_lines(log))
-
 
 class DslExpr:
     """
@@ -283,7 +284,7 @@ class DslCall(DslExpr):
     async def evaluate(self, ctx: Ctx) -> list[str]:
         # dont log STDOUT to TTY if its explicitly asked for
         can_log_out = ctx.can_log_out
-        if self.cmd in {"set", "no_tty_log"} and can_log_out:
+        if self.cmd in {"set", "no_tty_log"} and can_log_out and not ctx.is_trace:
             logger.warn("Explicitly suppressing TTY output for %s", ctx.src)
             ctx.can_log_out = False
 

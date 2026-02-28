@@ -7,13 +7,21 @@ import security
 
 import logging as i_am_intentionally_using_logging_instead_of_logger
 logger = i_am_intentionally_using_logging_instead_of_logger.getLogger(__name__)
+LOG_LEVELS = {
+    0: i_am_intentionally_using_logging_instead_of_logger.INFO,
+    1: i_am_intentionally_using_logging_instead_of_logger.DEBUG,
+    # Can you imagine theres no trace debug level in python???
+    2: i_am_intentionally_using_logging_instead_of_logger.DEBUG,
+}
 
 
 def get_config(args) -> EasyDict:
     # TODO: dynamic getattr
     config = {
         "command": args.command,
-        "is_loud": args.command in {"provision", "update"} or args.loud,
+        "is_loud": args.command in {"provision", "update"} or args.verbose >= 1,
+        "is_trace": args.verbose >= 2,
+        "log_level": LOG_LEVELS.get(args.verbose) or LOG_LEVELS[2],
         "halt_on_error": args.command in {"provision", "update", "package"} and not args.dry_run,
         "provis_path": args.app_dir or (args.recipes.resolve().parent / "beans"),
         "config_path": args.recipes.resolve(),
@@ -157,10 +165,11 @@ def get_args_and_config():
                         directory of the recipe folder named ‘beans’""")
     parser.add_argument("--dry-run", action="store_true", help="""Print the
                         commands run instead of running them""")
-    parser.add_argument("--loud", "-v", action="store_true", help="""Output
-                        services' stdout and stderr to the TTY and to log
-                        records, instead of only outputting to the log records.
-                        """)
+    parser.add_argument("--verbose", "-v", action="count", default=0,
+                        help="""Output services' stdout and stderr to the TTY
+                        and to log records, instead of only outputting to the
+                        log records. Pass --verbose two times to output lots of
+                        debugging informaton.""")
     parser.add_argument("--show-log-on-error", action="store_true", help="""
                         Print the omitted stdout log to the terminal on error.
                         """)

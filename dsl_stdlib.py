@@ -230,6 +230,9 @@ class DslStdlib:
 
 
 async def run_stdlib_func(ctx, cmd, args):
+    if ctx.is_trace:
+        logger.debug("Command ran: %s(%s)", ctx.src,', '.join(str(i) for i in args))
+    # TODO: add cmd sanitisation, make sure we're not calling __getattr__, etc.
     if not hasattr(DslStdlib, cmd):
         return None
     result = await getattr(DslStdlib, cmd)(ctx, args)

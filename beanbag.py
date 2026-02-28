@@ -15,16 +15,8 @@ ERRORS = {
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG, format="[%(asctime)s %(levelname)-8s %(name)-8s] %(message)s")
-
-    # parse arguments
-    # if len(sys.argv) <= 1:
-    #     logging.error("Too few arguments! Usage: beanbag.py <COMMAND> [<ARGS>*]")
-    #     logging.error("Valid <command>s are: %s", "provision run update package".split())
-    #     logging.error("To get all valid arguments for a given command, run beanbag.py <command> --help")
-    #     exit(1)
-
     config = bb_conf.get_args_and_config()
+    logging.basicConfig(level=config.log_level, format="[%(asctime)s %(levelname)-8s %(name)-8s] %(message)s")
 
     # run
     match config.command:
