@@ -15,8 +15,8 @@ def get_config(args) -> EasyDict:
         "command": args.command,
         "is_loud": args.command in {"provision", "update"} or args.loud,
         "halt_on_error": args.command in {"provision", "update", "package"} and not args.dry_run,
-        "provis_path": args.app_dir or (args.recipe.resolve().parent / "beans"),
-        "config_path": args.recipe.resolve(),
+        "provis_path": args.app_dir or (args.recipes.resolve().parent / "beans"),
+        "config_path": args.recipes.resolve(),
         "services": {},  # Is filled later on
         "max_value_len": 1024*1024*20,  # 20MiO
         "lib": {},  # Is filled later on
@@ -29,7 +29,9 @@ def get_config(args) -> EasyDict:
     # Make sure recipebook exists
     if not config["config_path"].exists():
         logger.error("Config/recipe book path (%s) doesn't exist!", config["config_path"])
-        logger.info("You may run beanbag init to create a recipe book folder")
+        logger.info("You may run `beanbag init` to create a recipe book folder")
+        logger.info("Alternatively, if the configuration is in a different path you may supply that path with `beanbag --recipes PATH`")
+        logger.info("Run `beanbag --help` for help")
         security.halt()
 
     # TODO: validate all paths are relative and don't escape
@@ -146,8 +148,8 @@ def get_args_and_config():
     parser = argparse.ArgumentParser()
     # parser.add_argument("command",
     #                     choices="provision run update package".split())
-    parser.add_argument("--recipe", "-i", type=Path,
-                        default=Path.cwd()/"recipe", help="""The location
+    parser.add_argument("--recipes", "-i", type=Path,
+                        default=Path.cwd()/"recipes", help="""The location
                         of a config folder or a zip package""")
     parser.add_argument("--app-dir", "-o", type=Path, default=None, help="""The
                         location of where the deployment is stored. If not
