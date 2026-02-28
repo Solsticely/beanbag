@@ -302,7 +302,7 @@ class DslCall(DslExpr):
         if result is not None:
             return result
 
-        # check libraries for command
+        # check addons for command
         if self.cmd in ctx.config.lib:
             return await ctx.config.lib[self.cmd].body.evaluate(newctx)
 

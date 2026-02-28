@@ -1,4 +1,4 @@
-# Configuration
+# Overview
 
 Beanbag's configuration (called the recipe book) is a folder, or optionally a
 zip file of said folder. A comprehensive example of this folder structure is as
@@ -7,10 +7,10 @@ follows:
 ```tree
 recipes/
 ├ beanbag_config.toml
-├ library/ <all command libraries, to be used in service descriptions>
-│ ├ library_1.toml
-│ ├ library_2.toml
-│ ├ library_3.toml
+├ addons/ <all addons, to be used in service descriptions>
+│ ├ addon_1.toml
+│ ├ addon_2.toml
+│ ├ addon_3.toml
 │ ┆
 └ services/ <all service descriptions and blobs>
   ├ service_1.toml
@@ -30,6 +30,12 @@ recipes/
   ┆ 
 ```
 
+Each service, like your webserver and your database, is configured in the
+`services/` directory.
+
+Addons are stored in the `addon/` directory. Each addon contains reusable
+snippets of code (as functions) that can be used in other addons, or services.
+
 The rest of this page documents each sub directory.
 
 ## `beanbag_config.toml`
@@ -37,20 +43,19 @@ The rest of this page documents each sub directory.
 TODO: Write beanbag config description and link to scheme
 TODO: write scheme documentation for beanbag_config.toml
 
-## `library/`
+## `addons/`
 
-The library folder contains libraries that add reusable subroutines for all
-services. Libraries may have dependencies on routines from other libraries. Each
-libary is a toml file, and the scheme is found
-[here](beanbag-library-scheme.md).
+The addon folder contains addons that add reusable subroutines that can be used
+in services and in other addons. Each addon is a toml file, and the scheme is
+found [here](beanbag-addon-scheme.md).
 
-TODO: write beanbag-library-scheme.md
+TODO: write beanbag-addon-scheme.md
 
 ## `services/`
 
 The service directory contains each service to be run. Services can't depend
 on eachother, but they can use routines from
-[libraries](beanbag.md#`services/`). Each service is defined by a TOML file and
+[addons](beanbag.md#`services/`). Each service is defined by a TOML file and
 extra setup files. The scheme for the TOML file is found
 [here](beanbag-service-scheme.md).
 

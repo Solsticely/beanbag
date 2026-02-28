@@ -113,18 +113,18 @@ def get_config(args) -> EasyDict:
 
     # TODO: validate that service ids are valid directory names
 
-    libraries = config["config_path"].glob("library/*.toml")
-    for library in libraries:
+    addons = config["config_path"].glob("addons/*.toml")
+    for addon in addons:
         # TODO: implement a way for the user to see which toml file has an error
-        lib_toml = tomllib.load(open(library, "rb"))
+        lib_toml = tomllib.load(open(addon, "rb"))
         cmds = lib_toml.get("command")
         if cmds is None:
             continue
         for ident, cmd in cmds.items():
             cmd = objectify(cmd)
             if ident in config["lib"]:
-                ctx = bb_dsl.Ctx(src=library, halt_on_error=True)
-                ctx.error("Library function %s registered twice" % ident, True)
+                ctx = bb_dsl.Ctx(src=addon, halt_on_error=True)
+                ctx.error("Addon function %s registered twice" % ident, True)
                 # <unreachable>
             config["lib"][ident] = {
                 "body": bb_dsl.parse_dsl(cmd.body),

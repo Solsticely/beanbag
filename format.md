@@ -6,10 +6,10 @@ for efficient deployment. The structure of said folder is as follows
 ```tree
 ├ beanbag/
 │ ├ beanbag_config.toml
-│ ├ library/ <all command libraries, to be used in service descriptions>
-│ │ ├ library_1.toml
-│ │ ├ library_2.toml
-│ │ ├ library_3.toml
+│ ├ addons/ <all addons, to be used in the service code>
+│ │ ├ addon_1.toml
+│ │ ├ addon_2.toml
+│ │ ├ addon_3.toml
 │ │ ┆
 │ └ services/ <all service descriptions and blobs>
 │   ├ service_1.toml
@@ -104,7 +104,7 @@ post_execute = [
 ]
 ```
 
-## Libraries
+## Addons
 
 ```toml
 [command.download_github_artifact]
@@ -134,11 +134,11 @@ body = [
 ```
 <!-- TODO: add examples --> 
 
-A command is a regular JSON array. Its first argument is the name of the library
-function that is run, and the rest of its arguments are the arguments passed to
-the library function. If any of the subsequent arguments are also arrays, those
-are executed as a command each, and are then substituted with the STDOUT output
-of the commands. Nested commands' invocations are logged.
+A command is a regular JSON array. Its first argument is the name of the
+function to be run, and the rest of its arguments are the arguments passed to
+the function. If any of the subsequent arguments are also arrays, those are
+executed as a command each, and are then substituted with the STDOUT output of
+the commands. Nested commands' invocations are logged.
 
 ## Standard library
 
