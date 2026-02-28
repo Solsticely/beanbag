@@ -30,7 +30,7 @@ body = [
     { curl = [ "-o", "./jaq", [ 
       "https://github.com/01mf02/jaq/releases/latest/download/jaq-",
       { get = "arch" },
-      "-unknown-linux-musl"
+      "-unknown-linux-gnu"
     ] ] },
     { chmod = [ "+x", "./jaq" ] },
     { echo = [ "Jaq binary cached!" ] },
