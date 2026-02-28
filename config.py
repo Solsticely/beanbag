@@ -15,8 +15,8 @@ def get_config(args) -> EasyDict:
         "command": args.command,
         "is_loud": args.command in {"provision", "update"} or args.loud,
         "halt_on_error": args.command in {"provision", "update", "package"} and not args.dry_run,
-        "provis_path": args.app_dir or (args.beanbag.resolve().parent / "beans"),
-        "config_path": args.beanbag.resolve(),
+        "provis_path": args.app_dir or (args.recipe.resolve().parent / "beans"),
+        "config_path": args.recipe.resolve(),
         "services": {},  # Is filled later on
         "max_value_len": 1024*1024*20,  # 20MiO
         "lib": {},  # Is filled later on
@@ -142,13 +142,13 @@ def get_args_and_config():
     parser = argparse.ArgumentParser()
     # parser.add_argument("command",
     #                     choices="provision run update package".split())
-    parser.add_argument("--beanbag", "-i", type=Path,
-                        default=Path.cwd()/"beanbag", help="""The location
-                        of a playbook config or a zip package""")
+    parser.add_argument("--recipe", "-i", type=Path,
+                        default=Path.cwd()/"recipe", help="""The location
+                        of a config folder or a zip package""")
     parser.add_argument("--app-dir", "-o", type=Path, default=None, help="""The
                         location of where the deployment is stored. If not
                         provided, defaults to a sibling directory to the parent
-                        directory of the beanbag named ‘beans’""")
+                        directory of the recipe folder named ‘beans’""")
     parser.add_argument("--dry-run", action="store_true", help="""Print the
                         commands run instead of running them""")
     parser.add_argument("--loud", "-v", action="store_true", help="""Output
