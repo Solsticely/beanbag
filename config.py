@@ -26,11 +26,16 @@ def get_config(args) -> EasyDict:
         "show_log_on_err": args.show_log_on_error,
     }
 
+    # Make sure recipebook exists
+    if not config["config_path"].exists():
+        logger.error("Config/recipe book path (%s) doesn't exist!", config["config_path"])
+        logger.info("You may run beanbag init to create a recipe book folder")
+        security.halt()
+
     # TODO: validate all paths are relative and don't escape
     # TODO: generalise loading, implement loading from zip
     services = config["config_path"].glob("services/*.toml")
     for srv_path in services:
-        print(srv_path)
         srv_toml = tomllib.load(open(srv_path, "rb"))
 
         # shorten index path: instead of `srv_toml["service"]["id"]` do
@@ -102,7 +107,6 @@ def get_config(args) -> EasyDict:
                 service["setupfiles"][filepath_relative] = lambda: open(filepath_capture, "rb")
 
         config["services"][srv_id] = service
-        print(config["services"][srv_id]["setupfiles"])
 
     config["selected_services"] = args.service or config["services"].keys()
     extra = config["selected_services"] - config["services"].keys()
