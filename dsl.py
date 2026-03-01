@@ -156,7 +156,7 @@ class Ctx:
             self.log_file.write(log)
             self.log_file.flush()
         log = log.strip()
-        if (self.is_trace or (condition and self.is_loud)) and len(log) != 0:
+        if condition and self.is_loud and len(log) != 0:
             logger.info("%s: %s", self.src, printutils.shrink_lines(log))
 
 class DslExpr:
@@ -284,7 +284,7 @@ class DslCall(DslExpr):
     async def evaluate(self, ctx: Ctx) -> list[str]:
         # dont log STDOUT to TTY if its explicitly asked for
         can_log_out = ctx.can_log_out
-        if self.cmd in {"set", "no_tty_log"} and can_log_out and not ctx.is_trace:
+        if self.cmd in {"set", "no_tty_log"}:
             logger.warn("Explicitly suppressing TTY output for %s", ctx.src)
             ctx.can_log_out = False
 
