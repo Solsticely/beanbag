@@ -135,7 +135,7 @@ class DslStdlib:
             ctx.error("Assertion failed: %s != %s%s" % (
                 repr(args[0]),
                 repr(args[1]),
-                "" if len(args) == 2 else args[3]
+                "" if len(args) == 2 else args[2]
             ), True)
         return [""]
 
