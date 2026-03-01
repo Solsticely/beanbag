@@ -42,7 +42,8 @@ def get_from_scope(ctx, args: list[str], reverse: bool):
     if val is None:
         ctx.error("Variable %s is not defined" % args[0])
         return ["$%s=UNDEFINED" % args[0]]
-    # logger.debug("Getting variable %s: %s", args[0], printutils.clean(val))
+    if ctx.is_trace:
+        logger.debug("Getting variable %s: %s", args[0], printutils.clean(val))
     return [val]
 
 
@@ -51,7 +52,8 @@ def set_to_scope(ctx, args, reverse: bool):
     if args is None:
         return [""]
     ctx.scope[1 if reverse else -2][args[0]] = args[1]
-    # logger.debug("Setting variable %s: %s", args[0], printutils.clean(args[1]))
+    if ctx.is_trace:
+        logger.debug("Setting variable %s: %s", args[0], printutils.clean(args[1]))
     return [args[1]]
 
 
@@ -231,7 +233,8 @@ class DslStdlib:
 
 async def run_stdlib_func(ctx, cmd, args):
     if ctx.is_trace:
-        logger.debug("Command ran: %s(%s)", ctx.src,', '.join(str(i) for i in args))
+        stringified = [printutils.clean(str(i)) for i in args]
+        logger.debug("Builtin command ran: %s(%s)", ctx.src,', '.join(stringified))
     # TODO: add cmd sanitisation, make sure we're not calling __getattr__, etc.
     if not hasattr(DslStdlib, cmd):
         return None

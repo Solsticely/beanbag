@@ -5,13 +5,13 @@ body = { no_tty_log = [
   # Download latest release information
   { set = [
     "releaseinfo",
-    { curl = [["https://api.github.com/repos/", 1, "/releases/latest"]] }
+    { no_tty_log = { curl = [["https://api.github.com/repos/", 1, "/releases/latest"]] } }
   ] },
   # Get a matching url, make there is atleast 1 url that matches
   { set = [ "nonce", { jsonquote = { randomstr = "42" } } ] },
   { set = [ "url", { firstline = { jq = [
     ['([.assets[]|select(.name|test(', { jsonquote = 2 }, ')).url]+[', { get = "nonce" }, '])[0]'], # pattern
-    { get = "releaseinfo" }
+    { no_tty_log = { get = "releaseinfo" }}
   ] } } ] },
   { assert_neq = [ { get = "nonce" }, { get = "url" }, "No suitable github release found" ] },
   { echo = [ "Found URL ", { get = "url" } ] },
