@@ -6,6 +6,7 @@ from pathlib import Path
 import dsl_stdlib
 import security
 import printutils
+from easydict import EasyDict
 
 import logging as i_am_intentionally_using_logging_instead_of_logger
 logger = i_am_intentionally_using_logging_instead_of_logger.getLogger(__name__)
@@ -95,6 +96,11 @@ class Ctx:
             log_file=log_file
         )
         return ctx
+
+    # This function is for test harnesses
+    def set_config(self, config: EasyDict):
+        assert self.config is None
+        self.config = config
 
     # def recurse(self, call: DslCall):
     def recurse(self, call, args):
