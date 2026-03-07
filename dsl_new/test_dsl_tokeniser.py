@@ -1,5 +1,6 @@
 import pytest
 from dsl_tokeniser import Tokens, STRING, IDENT, ParsingException, END
+from typing import Union
 
 TESTSTRING = """
 func download_github_artifact { $repo, $regex, $output_file } suppress_tty {
@@ -9,10 +10,10 @@ func download_github_artifact { $repo, $regex, $output_file } suppress_tty {
 
 	# Get release info
 	$releaseinfo = curl { 'https://api.github.com/repos/%s/releases/latest' % $repo }
-	$nonce = jsonquote randomstr 42
-	$url = jq { '([.assets[]|select(.name|test(%s)).url]+[%s])' % {jsonquote regex; jsonquote nonce}; $releaseinfo }
+	$nonce = jsonquote randomstr '42'
+	$url = jq { '([.assets[]|select(.name|test(%s)).url]+[%s])' % {jsonquote $regex; jsonquote $nonce}; $releaseinfo }
 	
-	assert_neq { $nonce; $url; "No suitable github release found for %s" % $repo }
+	assert_neq { $nonce; $url; 'No suitable github release found for %s' % $repo }
 	echo 'Found URL %s' % $url
 
 	# Download the payload
@@ -21,7 +22,7 @@ func download_github_artifact { $repo, $regex, $output_file } suppress_tty {
 		jsonunquote $url
 		'--output'; $output_file
 	}
-	echo 'Finished downloading github artifact to %s'..$output_file
+	echo 'Finished downloading github artifact to %s'%$output_file
 }
 
 func jq { $pattern, $json } {
@@ -36,7 +37,7 @@ func jq { $pattern, $json } {
 		echo 'Jaq binary cached!'
 	}
 
-	shell_exec 'printf -- \'%%s\' %s | ./jaq -- %s | tee' % {shquote $json, shquote pattern}
+	shell_exec 'printf -- \\'%%s\\' %s | ./jaq -- %s | tee' % {shquote $json, shquote $pattern}
 }
 
 doc 'Tests the functionality of the tokeniser, parser, and runner :)'
@@ -49,8 +50,8 @@ test_all_features { $a, $b='tea'
 	'12_%s_%s'
 	%
 	{cat *, $a, $b}
-	assert_neq($c,'13_%s_%s_%s'%{cat *,$a;$b,
-	'a'});;;;;;;;;
+	assert_neq{$c,'13_%s_%s_%s'%{cat *,$a;$b,
+	'a'}};;;;;;;;;
 	return cat {$a,[
 		multiline string
 	]}
@@ -79,18 +80,18 @@ def test_bad_take_sep(case):
 
 def test_tokenisation_result():
     input = """
-        [ Tests the functionality of the tokeniser, parser, and runner :) ]
+        doc [ Tests the functionality of the tokeniser, parser, and runner :) ]
         func
         test_all_features { $a, $b='tea'
         * } cat suppress_tty cat
         {
         	$c
         	=
-        	'12_%s_%s'
+            '12_\\'%s\\'_%s'
         	%
         	{cat *, $a, $b}
-        	assert_neq{$c,'13_%s_%s_%s'%{cat *,$a;$b,
-        	'a'}};;;;;;;;;
+            assert_neq{$c,'13_%s_%s_%s'%{cat *,$a;$b,
+            'a'}};;;;;;;;;
         	return cat {$a,[\n\t\tmultiline string\n\t]}
 	
         	# Comment
@@ -101,13 +102,14 @@ def test_tokenisation_result():
         #  <identifier> <string> * $ % { } 
     """
     expected_result = [
-        (STRING,True,' Tests the functionality of the tokeniser, parser, and runner :) '),
+        (IDENT,True,'doc'),
+        (STRING,False,' Tests the functionality of the tokeniser, parser, and runner :) '),
         (IDENT,True,'func'),(IDENT,True,'test_all_features'),('{',False,'{'),
         ('$',False,'$'),(IDENT,False,'a'),('$',True,'$'),(IDENT,False,'b'),
         ('=',False,'='),(STRING,False,'tea'),('*',True,'*'),('}',False,'}'),
         (IDENT,False,'cat'),(IDENT,False,'suppress_tty'),(IDENT,False,'cat'),
         ('{',True,'{'),('$',True,'$'),(IDENT,False,'c'),('=',True,'='),
-        (STRING,True,'12_%s_%s'),('%',True,'%'),('{',True,'{'),
+        (STRING,True,'12_\'%s\'_%s'),('%',True,'%'),('{',True,'{'),
         (IDENT,False,'cat'),('*',False,'*'),('$',True,'$'),(IDENT,False,'a'),
         ('$',True,'$'),(IDENT,False,'b'),('}',False,'}'),
         (IDENT,True,'assert_neq'),('{',False,'{'),('$',False,'$'),
@@ -123,3 +125,32 @@ def test_tokenisation_result():
         assert i == (
             tokens.peek_type, tokens.peek_sep(), tokens.take(tokens.peek_type)
         )
+
+
+def print_all_tokens(tokens: Union[str, Tokens]):
+	if isinstance(tokens, str):
+		tokens = Tokens(tokens)
+
+	all_tokens = []
+	token_names = {
+		STRING: 'str',
+		IDENT: 'id',
+		END: '$',
+		'$': 'doll',
+		**{i:i for i in '{}%=*'}
+	}
+	keywords = {*'return func if not else doc'.split()}
+
+	while True:
+		nexttoken = tokens.peek_type
+		nexttokenstr = tokens.take(nexttoken)
+
+		if nexttokenstr not in keywords:
+			nexttokenstr = token_names[nexttoken]
+
+		all_tokens.append(nexttokenstr)
+
+		if nexttoken == END:
+			break
+
+	print(" ".join(all_tokens))
