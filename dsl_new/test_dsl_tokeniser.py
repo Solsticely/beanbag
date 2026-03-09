@@ -139,7 +139,7 @@ def print_all_tokens(tokens: Union[str, Tokens]):
 		'$': 'doll',
 		**{i:i for i in '{}%=*'}
 	}
-	keywords = {*'return func if not else doc'.split()}
+	keywords = {*'return func if else doc'.split()}
 
 	while True:
 		nexttoken = tokens.peek_type

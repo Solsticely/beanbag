@@ -1,15 +1,15 @@
 import pytest
 
 from test_dsl_tokeniser import TESTSTRING
-from dsl_tokeniser import Tokens
-from dsl_parser import parse_funcvars, parse_funclist, parse_expr
+from dsl_tokeniser import Tokens, ParsingException
+from dsl_parser import parse_funcvars, parse_funclist, parse_expr, parse_exprs
 from dsl_ast import Var, Call, FuncVars, RetVal, Const, ArgCapture, Func, Exprs, Jump
 
 t = Tokens
 
 
 def test_parse_funcvars():
-    with pytest.raises(SyntaxError):
+    with pytest.raises(ParsingException):
         parse_funcvars(t('$a, $b=\'2\', $c }'))
         parse_funcvars(t('$a, *, $b, $c }'))
         parse_funcvars(t('$a $b, $c }'))
@@ -19,7 +19,7 @@ def test_parse_funcvars():
         parse_funcvars(t('$a, $b=\'ananas\', $c=2 }'))
     assert FuncVars() == parse_funcvars(t('}'))
     assert FuncVars(
-        [Var("a"), Var("b", "2"), Var("c", "a")], capture_rest=True
+        [Var("a"), Var("b", "2"), Var("c", "a")], capture_rest=False
     ) == parse_funcvars(t("$a, $b='2'; $c='a' }"))
     assert FuncVars(capture_rest=True) == parse_funcvars(t('* , }'))
 
@@ -55,6 +55,7 @@ def test_parse_format():
 
 def test_parse_return():
     assert RetVal(Const('hi :)')) == parse_expr(t("return 'hi :)'"))
+    assert Exprs([RetVal(), Const('Not returned')]) == parse_exprs(t("return\n'Not returned'"))
 
 def test_parse_var_assign():
     assert Call("set", Exprs([Const("var"), Const("value")])) == parse_expr(
@@ -66,8 +67,9 @@ def test_parse_var_retrieve():
 
 
 def test_parse_if():
-    assert Jump('true', Exprs([Const("if")]), Exprs([Const("else")])) == parse_expr(t("if 'true' { 'if' } else { 'else' }"))
-    assert Jump('false', Exprs([Const("there can only be one")])) == parse_expr(t("if 'false' { 'there can only be one' }"))
+    assert Jump(Const('true'), Exprs([Const("if")]), Exprs([Const("else")])) == parse_expr(t("if 'true' { 'if' } else { 'else' }"))
+    assert Jump(Const('false'), Exprs([Const("there can only be one")])) == parse_expr(t("if 'false' { 'there can only be one' }"))
+    assert Jump(Const('false'), Exprs([Const("1")]), Exprs([Jump(Const('true'), Exprs([Const('2')]), Exprs([Const('3')]))])) == parse_expr(t("if 'false' { '1' } else if 'true' { '2' } else { '3' }"))
 
 
 # Vague LL(1) syntax:

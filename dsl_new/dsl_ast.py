@@ -32,6 +32,7 @@ class RetVal(Expr):
 	value: Expr = dataclasses.field(default_factory=lambda:Const(""))
 
 
+@dataclasses.dataclass
 class ArgCapture(Expr):
 	pass
 
@@ -54,4 +55,4 @@ class Call(Expr):
 class Jump(Expr):
     condition: Expr
     expr_true: Exprs
-    expr_false: Exprs
+    expr_false: Exprs = dataclasses.field(default_factory=Exprs)
