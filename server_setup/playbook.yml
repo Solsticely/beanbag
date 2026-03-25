@@ -13,6 +13,8 @@
   tasks:
   - name: Install packages
     apt:
+      update_cache: yes
+      upgrade: full
       pkg:
       - ufw
       - unattended-upgrades
@@ -22,7 +24,7 @@
 
   - name: Set up networking
     block:
-    # TODO: make sure you can bind to SSH ports wi
+    # TODO: make sure you can bind to SSH ports with current running ansible instance
   
     - name: Setup alternate SSH port
       lineinfile:
@@ -67,6 +69,7 @@
           rule: limit
           port: '79'
 
+    # This isn't as big of a risk because we have UFW :>
     - name: Allow binding to low ports
       sysctl:
         name: net.ipv4.ip_unprivileged_port_start
@@ -85,10 +88,19 @@
         regexp: '^PermitRootLogin'
         line: 'PermitRootLogin no'
 
-    # TODO: ensure order of playbook items
     # TODO: add custom ssh key
     # TODO: add ssh login alerts
-    # TODO: remove ability to log into root user to begin with: remove root password, lock root password, set root shell to /sbin/nologin with usermod
+    - name: Remove root login
+      user:
+        name: root
+        password_lock: yes
+        password: !
+        shell: /sbin/nologin
+        uid: 1
+        append: true
+        create_home: false
+        home: /root
+
     # TODO: add new user, add them to sudoers
     - name: 'Add user {{ agneau_server_uname }}' 
       user:
@@ -96,9 +108,8 @@
         append: true
         uid: 1000
         groups: sudo
-        password: 
+        password: '{{ agneau_user_pwd }}'
       
-hou
     - name: Restart SSHd
       systemd:
         name: sshd
