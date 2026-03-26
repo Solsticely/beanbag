@@ -56,6 +56,7 @@ if [ ! -e initrd.img ] || [ ! -e vmlinuz ] ; then
   guestfish --remote exit
 fi
 
+# shellcheck disable=SC2016
 printf '\033[33;1mRun `ssh root@localhost -p %d`\nWhen done, run `killall qemu-system-%s`\nIf this is your first run:\n\trun `apt install openssh-server`, then\n\trun `nano /etc/sshd_config` and set `PermitRootLogin yes` & `PasswordAuthentication yes`, then\n\ton the host machine, run `cp deb.qcow2{,.orig}`\033[0m\n' "$SSH_PORT" "$MACH"
 
 # Thanks to https://blachniet.com/posts/create-a-minimal-local-debian-vm-with-qemu/
