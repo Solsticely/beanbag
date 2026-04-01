@@ -8,6 +8,7 @@ MACH="$(uname -m)"
 
 DEBIAN_VERSION_NAME='trixie'
 DEBIAN_VERSION_NO=13
+MAX_DISK_SIZE=15G
 
 declare -a ARGS
 ARGS=(
@@ -67,7 +68,15 @@ if [ ! -e ./deb.qcow2 ] ; then
     cp ./deb.qcow2.orig ./deb.qcow2
   else
     printf '\033[33;1m%s\033[0m\n' "Downloading debian! This may take a while..."
-    curl -L "https://cloud.debian.org/images/cloud/${DEBIAN_VERSION_NAME}/latest/debian-${DEBIAN_VERSION_NO}-nocloud-${DEBIAN_ARCH}.qcow2" > deb.qcow2
+    curl -L "https://cloud.debian.org/images/cloud/${DEBIAN_VERSION_NAME}/latest/debian-${DEBIAN_VERSION_NO}-nocloud-${DEBIAN_ARCH}.qcow2" > deb.qcow2.orig
+
+    # Thanks to https://edafe.de/2025/02/shrink-optimise-and-expand-an-existing-qcow2-image/
+    # Increase main partition size (images come with 4GiB I believe)
+    printf '\033[33;1mCreating new %s disk!\033[0m\n' "$MAX_DISK_SIZE"
+    qemu-img create -f qcow2 -o cluster_size=2M ./deb.qcow2 "$MAX_DISK_SIZE"
+
+    printf '\033[33;1m%s\033[0m\n' "Balooning debian size! This may take a while..."
+    virt-resize --expand /dev/sda1 ./deb.qcow2.orig ./deb.qcow2
 
     printf '\033[33;1m%s\033[0m\n' "Configuring image! This may take a while..."
     virt-customize -a deb.qcow2               \
