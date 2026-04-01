@@ -12,9 +12,7 @@ MAX_DISK_SIZE=15G
 
 declare -a ARGS
 ARGS=(
-  -nic "user,hostfwd=tcp::20022-:22"
-  -nic "user,hostfwd=tcp::20186-:186"
-  -nic "user,hostfwd=udp::26001-:60001"
+  -nic "user,hostfwd=tcp::20022-:22,hostfwd=tcp::20186-:186,hostfwd=udp::26001-:60001"
 )
 
 case "$MACH" in
