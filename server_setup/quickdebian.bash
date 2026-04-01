@@ -8,7 +8,13 @@ MACH="$(uname -m)"
 
 DEBIAN_VERSION_NAME='trixie'
 DEBIAN_VERSION_NO=13
-SSH_PORT=22222
+
+declare -a ARGS
+ARGS=(
+  -nic "user,hostfwd=tcp::20022-:22"
+  -nic "user,hostfwd=tcp::20186-:186"
+  -nic "user,hostfwd=udp::26001-:60001"
+)
 
 case "$MACH" in
   aarch64)
@@ -45,14 +51,13 @@ if [ "$KVM_ERR" -eq 124 ] ; then
 fi
 
 declare -a ARGS
-ARGS=(
+ARGS+=(
   -machine "$QEMU_MACH"
   -cpu "$QEMU_CPU"
   -drive "if=none,file=deb.qcow2,format=qcow2,id=hd"
   -device "virtio-blk-pci,drive=hd"
   -m 512m
   -smp 4
-  -nic "user,hostfwd=tcp::$SSH_PORT-:22"
   -accel "$QEMU_EMULATOR"
 )
 
@@ -108,7 +113,7 @@ fi
 
 
 # shellcheck disable=SC2016
-printf '\033[33;1mRun `ssh root@localhost -p %d`\nWhen done, run `killall qemu-system-%s`\033[0m\n' "$SSH_PORT" "$MACH"
+printf '\033[33;1mRun `ssh root@localhost -p <selected ssh port>`\nWhen done, run `killall qemu-system-%s`\033[0m\n' "$MACH"
 
 # Thanks to https://blachniet.com/posts/create-a-minimal-local-debian-vm-with-qemu/
 # and https://wiki.qemu.org/Documentation/Platforms/ARM
