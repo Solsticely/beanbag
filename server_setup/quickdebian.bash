@@ -99,7 +99,7 @@ if [ "$QEMU_USE_INITRD" -eq 1 ] ; then
     printf '\033[33;1m%s\033[0m\n' "Extracting kernel and boot images! This may take a while..."
     eval "$(guestfish --listen)"
     guestfish --remote add-ro deb.qcow2
-    guestfish --remotve run
+    guestfish --remote run
     guestfish --remote mount /dev/sda1 /
 
     LS_BOOT="$(guestfish --remote ls /boot)"
