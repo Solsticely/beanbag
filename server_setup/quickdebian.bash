@@ -9,6 +9,7 @@ MACH="$(uname -m)"
 DEBIAN_VERSION_NAME='trixie'
 DEBIAN_VERSION_NO=13
 MAX_DISK_SIZE=15G
+MEM_AMT=2G
 
 declare -a ARGS
 ARGS=(
@@ -55,7 +56,7 @@ ARGS+=(
   -cpu "$QEMU_CPU"
   -drive "if=none,file=deb.qcow2,format=qcow2,id=hd"
   -device "virtio-blk-pci,drive=hd"
-  -m 512m
+  -m "$MEM_AMT"
   -smp 4
   -accel "$QEMU_EMULATOR"
 )
