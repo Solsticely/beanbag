@@ -13,7 +13,7 @@ MEM_AMT=2G
 
 declare -a ARGS
 ARGS=(
-  -nic "user,hostfwd=tcp::20022-:22,hostfwd=tcp::20186-:186,hostfwd=udp::26001-:60001"
+  -nic "user,hostfwd=tcp::20022-:22,hostfwd=tcp::20186-:186,hostfwd=udp::60301-:60301"
 )
 
 case "$MACH" in
