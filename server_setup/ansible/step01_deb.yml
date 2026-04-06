@@ -1,0 +1,35 @@
+---
+- become: yes
+  hosts: pre_security
+  become_method: sudo
+  vars_files:
+    - 'config.yml'
+  tasks:
+  - name: Full Upgrade
+    apt:
+      upgrade: full
+      update_cache: yes
+  - name: Install packages
+    apt:
+      pkg:
+      - ufw
+      - unattended-upgrades
+      - mosh
+      - curl
+      - socat
+      - ansible
+      - locales
+      - lsof
+  - name: Install packages (selinux)
+    when: update_selinux
+    apt:
+      pkg:
+      - python3-selinux
+      - python3-sepolicy
+      - python3-seobject
+  - name: Setup unattended upgrades
+    service:
+      name: unattended-upgrades
+      enabled: yes
+      state: started
+

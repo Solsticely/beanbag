@@ -1,0 +1,9 @@
+---
+- name: 'Set up debian-dependent settings'
+  import_playbook: step01_deb.yml
+- name: 'Set up networking-related settings'
+  import_playbook: step02_net.yml
+- name: 'Set up user-related settings'
+  import_playbook: step03_user.yml
+- name: 'Set up user-related settings'
+  import_playbook: step04_ssh.yml
