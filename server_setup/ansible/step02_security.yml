@@ -150,3 +150,13 @@
   # TODO: elfsign and periodic verify
   # TODO: OSSEC or wazuh or crowdsec
   # TODO: External audit logging
+  # TODO: Some basic selinux configuration
+  # TODO: Install Endlessl
+  # TODO: Set up transparent file encryption
+  # TODO: Install a reverse proxy that bans or smites based on IPs and ja4+ tls/tcp/http signatures
+  # TODO: Set up fail2ban
+
+  # TODO: Different pentesting/auditing tools:
+  # TODO: Peass-NG
+  # TODO: sliver framework
+  # TODO: havoc framework
