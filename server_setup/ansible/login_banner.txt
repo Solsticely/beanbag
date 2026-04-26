@@ -1,0 +1,16 @@
+t=$(cat<<EOF | sed s/agneau/tofu/g | tee ~/whereami
+░░░░░░░░░░█▀▀░░░█░█▀▄░█▀█░█▀▀░█░█░█▀▀░░░█░░░░░░░░░░
+░░░░░░░░░░▀▀█░▄▀░░█▀▄░█░█░█▀▀░█░█░█▀▀░▄▀░░░░░░░░░░░
+░░░░░░░░░░▀▀▀░▀░░░▀▀░░▀▀▀░▀▀▀░▀▀▀░▀░░░▀░░░░░░░░░░░░
+░░░░░░░░░░█▀█░█▀▀░█▀█░█▀▀░█▀█░█░█░░░█░█▀▀░░░░░░░░░░
+░░░░░░░░░░█▀█░█░█░█░█░█▀▀░█▀█░█░█░▄▀░░█░█░░░░░░░░░░
+░░░░░░░░░░▀░▀░▀▀▀░▀░▀░▀▀▀░▀░▀░▀▀▀░▀░░░▀▀▀░░░░░░░░░░
+EOF);echo "$t"|xargs -L1 bash -c echo\ \${0:10:-10}
+
+This server has auditing on and logs are monitored
+off-server. Unauthorized access to this system is
+forbidden and may lead to prosecution. By accessing
+this system, you agree that all your actions may be
+monitored if unauthorized usage is suspected.
+You have been warned.
+

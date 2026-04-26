@@ -1,0 +1,152 @@
+---
+- become: yes
+  hosts: pre_security
+  become_method: sudo
+  vars_files:
+    - 'config.yml'
+  tasks:
+  - name: Enable accounting with sysstat
+    systemd: {state: started, enabled: yes, masked: no, unit: sysstat}
+
+  - name: Enable process accounting (systemd)
+    systemd: {state: started, enabled: yes, masked: no, unit: acct}
+  
+  - name: Enable process accounting (accton)
+    command: /usr/sbin/accton on
+
+  - name: Enable auditd
+    systemd: {state: started, enabled: yes, masked: no, unit: auditd}
+
+  - name: Enable unattended upgrades
+    systemd: {state: started, enabled: yes, masked: no, unit: unattended-upgrades}
+
+  # Legal header
+  - name: Write /etc/issue banner
+    copy: {dest: /etc/issue, content: "{{ lookup('file', 'login_banner.txt') }}\n"}
+  - name: Write /etc/issue.net banner
+    copy: {dest: /etc/issue.net, content: "{{ lookup('file', 'login_banner.txt') }}\n"}
+  - name: Write /etc/motd banner
+    copy: {dest: /etc/motd, content: "{{ lookup('file', 'login_banner.txt') }}\n"}
+
+  # SSH logging & hardening
+  - name: Setup verbose SSH logging
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^LogLevel', line: 'LogLevel VERBOSE'}
+  - name: Setup max SSH auth tries
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^MaxAuthTries', line: 'MaxAuthTries 3'}
+  - name: Setup max SSH sessions
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^MaxSessions', line: 'MaxSessions 2'}
+  - name: Setup SSH max client alives
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^ClientAliveCountMax', line: 'ClientAliveCountMax 2'}
+  - name: Setup SSH keepalive method
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^TCPKeepAlive', line: 'TCPKeepAlive NO'}
+  - name: Setup SSH agent forwarding
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^AllowAgentForwarding', line: 'AllowAgentForwarding NO'}
+  # - name: Setup SSH TCP forwarding
+  #   lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^AllowTcpForwarding', line: 'AllowTcpForwarding NO'}
+
+  # Sysctl
+  - name: Set dev.tty.ldisc_autoload=0
+    sysctl: {name: dev.tty.ldisc_autoload, value: 0, sysctl_set: yes}
+  - name: Set fs.protected_fifos=2
+    sysctl: {name: fs.protected_fifos, value: 2, sysctl_set: yes}
+  - name: Set kernel.kptr_restrict=2
+    sysctl: {name: kernel.kptr_restrict, value: 2, sysctl_set: yes}
+  # - name: Set kernel.modules_disabled=1
+  #   sysctl: {name: kernel.modules_disabled, value: 1, sysctl_set: yes}
+  - name: Set kernel.sysrq=0
+    sysctl: {name: kernel.sysrq, value: 0, sysctl_set: yes}
+  - name: Set kernel.unprivileged_bpf_disabled=1
+    sysctl: {name: kernel.unprivileged_bpf_disabled, value: 1, sysctl_set: yes}
+  - name: Set kernel.yama.ptrace_scope=2
+    sysctl: {name: kernel.yama.ptrace_scope, value: 2, sysctl_set: yes}
+  - name: Set net.core.bpf_jit_harden=2
+    sysctl: {name: net.core.bpf_jit_harden, value: 2, sysctl_set: yes}
+  - name: Set net.ipv4.conf.all.log_martians=1
+    sysctl: {name: net.ipv4.conf.all.log_martians, value: 1, sysctl_set: yes}
+  - name: Set net.ipv4.conf.all.rp_filter=1
+    sysctl: {name: net.ipv4.conf.all.rp_filter, value: 1, sysctl_set: yes}
+  - name: Set net.ipv4.conf.all.send_redirects=0
+    sysctl: {name: net.ipv4.conf.all.send_redirects, value: 0, sysctl_set: yes}
+  - name: Set net.ipv4.conf.default.log_martians=1
+    sysctl: {name: net.ipv4.conf.default.log_martians, value: 1, sysctl_set: yes}
+  - name: Set net.ipv4.conf.default.send_redirects=0
+    sysctl: {name: net.ipv4.conf.default.send_redirects, value: 0, sysctl_set: yes}
+
+  # PAM auth hardening
+  - name: Set yescript rounds in login defs
+    lineinfile: {dest: /etc/login.defs, regexp: '^YESCRYPT_COST_FACTOR', line: 'YESCRYPT_COST_FACTOR 9'}
+  - name: Set sha rounds in login defs
+    lineinfile: {dest: /etc/login.defs, regexp: '^SHA_CRYPT_MIN_ROUNDS', line: 'SHA_CRYPT_MIN_ROUNDS 5000'}
+  - name: Set default umask to 027
+    lineinfile: {dest: /etc/login.defs, regexp: '^UMASK', line: 'UMASK 027'}
+
+  # Modprobe
+  # Generated using
+  # for i in 'usb-storage firewire-ohci firewire-core sctp dccp rds tipc'.split():
+  #   print("- name: Disable %s driver (step 1/2, add blacklist line)\n  lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \\t]*%s', line: 'blacklist %s'}" % (i, i, i))
+  #   print("- name: Disable %s driver (step 2/2, add install line)\n  lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \\t]*%s', line: 'install %s /bin/false'}" % (i, i, i))
+  - name: Make sure modprobe file exists
+    file: {dest: /etc/modprobe.d/needless.conf, state: touch, mode: '644'}
+  - name: Disable usb-storage driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*usb-storage', line: 'blacklist usb-storage'}
+  - name: Disable usb-storage driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*usb-storage', line: 'install usb-storage /bin/false'}
+
+  - name: Disable firewire-ohci driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*firewire-ohci', line: 'blacklist firewire-ohci'}
+  - name: Disable firewire-ohci driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*firewire-ohci', line: 'install firewire-ohci /bin/false'}
+  - name: Disable firewire-core driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*firewire-core', line: 'blacklist firewire-core'}
+  - name: Disable firewire-core driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*firewire-core', line: 'install firewire-core /bin/false'}
+
+  - name: Disable sctp driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*sctp', line: 'blacklist sctp'}
+  - name: Disable sctp driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*sctp', line: 'install sctp /bin/false'}
+  - name: Disable dccp driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*dccp', line: 'blacklist dccp'}
+  - name: Disable dccp driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*dccp', line: 'install dccp /bin/false'}
+  - name: Disable rds driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*rds', line: 'blacklist rds'}
+  - name: Disable rds driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*rds', line: 'install rds /bin/false'}
+  - name: Disable tipc driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*tipc', line: 'blacklist tipc'}
+  - name: Disable tipc driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*tipc', line: 'install tipc /bin/false'}
+
+  # Auditd setup
+  - name: Install nextron audit config
+    ansible.builtin.get_url:
+      url: https://raw.githubusercontent.com/Neo23x0/auditd/master/audit.rules
+      dest: /etc/audit/rules.d/audit.rules
+
+  - name: Update audit rules
+    command: augenrules --load
+
+  - name: Restart auditd
+    systemd: {name: auditd, state: restarted}
+
+  # Improve file permissions
+  - name: Change permissions for /boot/grub/grub.cfg
+    file: {dest: /boot/grub/grub.cfg, mode: '600'}
+  - name: Change permissions for /etc/ssh/sshd_config
+    file: {dest: /etc/ssh/sshd_config, mode: '600'}
+  - name: Change permissions for /etc/cron.d
+    file: {dest: /etc/cron.d, mode: '700'}
+  - name: Change permissions for /etc/cron.daily
+    file: {dest: /etc/cron.daily, mode: '700'}
+  - name: Change permissions for /etc/cron.weekly
+    file: {dest: /etc/cron.weekly, mode: '700'}
+  - name: Change permissions for /etc/cron.monthly
+    file: {dest: /etc/cron.monthly, mode: '700'}
+  
+  # TODO: Extra audit stuff that has to be added later:
+  # TODO: Periodic check with debsums
+  # TODO: Some simple file integrity tool
+  # TODO: elfsign and periodic verify
+  # TODO: OSSEC or wazuh or crowdsec
+  # TODO: External audit logging
