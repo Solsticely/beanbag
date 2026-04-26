@@ -81,17 +81,18 @@
     lineinfile: {dest: /etc/login.defs, regexp: '^UMASK', line: 'UMASK 027'}
 
   # Modprobe
-  # Generated using
-  # for i in 'usb-storage firewire-ohci firewire-core sctp dccp rds tipc'.split():
-  #   print("- name: Disable %s driver (step 1/2, add blacklist line)\n  lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \\t]*%s', line: 'blacklist %s'}" % (i, i, i))
-  #   print("- name: Disable %s driver (step 2/2, add install line)\n  lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \\t]*%s', line: 'install %s /bin/false'}" % (i, i, i))
   - name: Make sure modprobe file exists
     file: {dest: /etc/modprobe.d/needless.conf, state: touch, mode: '644'}
+
+  # Generated using
+  # for i in 'usb-storage firewire-ohci firewire-core sctp dccp rds tipc thunderbolt n-hdlc ax25 netrom x25 rose decnet econet af_802154 ipx appletalk psnap p8023 llc p8022'.split():
+  #   print("- name: Disable %s driver (step 1/2, add blacklist line)\n  lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \\t]*%s', line: 'blacklist %s'}" % (i, i, i))
+  #   print("- name: Disable %s driver (step 2/2, add install line)\n  lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \\t]*%s', line: 'install %s /bin/false'}" % (i, i, i))
+  # Storage, DMA and bus drivers
   - name: Disable usb-storage driver (step 1/2, add blacklist line)
     lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*usb-storage', line: 'blacklist usb-storage'}
   - name: Disable usb-storage driver (step 2/2, add install line)
     lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*usb-storage', line: 'install usb-storage /bin/false'}
-
   - name: Disable firewire-ohci driver (step 1/2, add blacklist line)
     lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*firewire-ohci', line: 'blacklist firewire-ohci'}
   - name: Disable firewire-ohci driver (step 2/2, add install line)
@@ -100,7 +101,12 @@
     lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*firewire-core', line: 'blacklist firewire-core'}
   - name: Disable firewire-core driver (step 2/2, add install line)
     lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*firewire-core', line: 'install firewire-core /bin/false'}
+  - name: Disable thunderbolt driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*thunderbolt', line: 'blacklist thunderbolt'}
+  - name: Disable thunderbolt driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*thunderbolt', line: 'install thunderbolt /bin/false'}
 
+  # Uncommon network protocol drivers
   - name: Disable sctp driver (step 1/2, add blacklist line)
     lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*sctp', line: 'blacklist sctp'}
   - name: Disable sctp driver (step 2/2, add install line)
@@ -117,6 +123,63 @@
     lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*tipc', line: 'blacklist tipc'}
   - name: Disable tipc driver (step 2/2, add install line)
     lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*tipc', line: 'install tipc /bin/false'}
+
+  - name: Disable n-hdlc driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*n-hdlc', line: 'blacklist n-hdlc'}
+  - name: Disable n-hdlc driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*n-hdlc', line: 'install n-hdlc /bin/false'}
+  - name: Disable ax25 driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*ax25', line: 'blacklist ax25'}
+  - name: Disable ax25 driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*ax25', line: 'install ax25 /bin/false'}
+  - name: Disable netrom driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*netrom', line: 'blacklist netrom'}
+  - name: Disable netrom driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*netrom', line: 'install netrom /bin/false'}
+  - name: Disable x25 driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*x25', line: 'blacklist x25'}
+  - name: Disable x25 driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*x25', line: 'install x25 /bin/false'}
+  - name: Disable rose driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*rose', line: 'blacklist rose'}
+  - name: Disable rose driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*rose', line: 'install rose /bin/false'}
+  - name: Disable decnet driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*decnet', line: 'blacklist decnet'}
+  - name: Disable decnet driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*decnet', line: 'install decnet /bin/false'}
+  - name: Disable econet driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*econet', line: 'blacklist econet'}
+  - name: Disable econet driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*econet', line: 'install econet /bin/false'}
+  - name: Disable af_802154 driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*af_802154', line: 'blacklist af_802154'}
+  - name: Disable af_802154 driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*af_802154', line: 'install af_802154 /bin/false'}
+  - name: Disable ipx driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*ipx', line: 'blacklist ipx'}
+  - name: Disable ipx driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*ipx', line: 'install ipx /bin/false'}
+  - name: Disable appletalk driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*appletalk', line: 'blacklist appletalk'}
+  - name: Disable appletalk driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*appletalk', line: 'install appletalk /bin/false'}
+  - name: Disable psnap driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*psnap', line: 'blacklist psnap'}
+  - name: Disable psnap driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*psnap', line: 'install psnap /bin/false'}
+  - name: Disable p8023 driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*p8023', line: 'blacklist p8023'}
+  - name: Disable p8023 driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*p8023', line: 'install p8023 /bin/false'}
+  - name: Disable llc driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*llc', line: 'blacklist llc'}
+  - name: Disable llc driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*llc', line: 'install llc /bin/false'}
+  - name: Disable p8022 driver (step 1/2, add blacklist line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^blacklist[ \t]*p8022', line: 'blacklist p8022'}
+  - name: Disable p8022 driver (step 2/2, add install line)
+    lineinfile: {dest: /etc/modprobe.d/needless.conf, regexp: '^install[ \t]*p8022', line: 'install p8022 /bin/false'}
 
   # Auditd setup
   - name: Install nextron audit config
@@ -145,9 +208,10 @@
     file: {dest: /etc/cron.monthly, mode: '700'}
   
   # TODO: Extra audit stuff that has to be added later:
-  # TODO: Periodic check with debsums
-  # TODO: Some simple file integrity tool
-  # TODO: elfsign and periodic verify
+  # TODO: CRON: Periodically run check debsums
+  # TODO: CRON: Some simple file integrity tool
+  # TODO: CRON: elfsign and periodic verify
+  # TODO: CRON: Set up chkrootkit
   # TODO: OSSEC or wazuh or crowdsec
   # TODO: External audit logging
   # TODO: Some basic selinux configuration
@@ -155,8 +219,11 @@
   # TODO: Set up transparent file encryption
   # TODO: Install a reverse proxy that bans or smites based on IPs and ja4+ tls/tcp/http signatures
   # TODO: Set up fail2ban
+  # TODO: Lock in kernel modules that you need so you can set kernel.modules_disabled=1
 
   # TODO: Different pentesting/auditing tools:
   # TODO: Peass-NG
   # TODO: sliver framework
   # TODO: havoc framework
+  # TODO: ~~lynis~~
+
