@@ -20,6 +20,13 @@
       - ansible
       - locales
       - lsof
+      - git
+      - auditd
+      - audispd-plugins
+      - acct
+      - sysstat
+      - apt-show-versions
+      - debsums
   - name: Install packages (selinux)
     when: update_selinux
     apt:
