@@ -1,0 +1,75 @@
+---
+- become: yes
+  hosts: pre_security
+  become_method: sudo
+  vars_files:
+    - 'config.yml'
+  vars:
+    ssh_alert_file_path: '/home/{{ new_user_name }}/secure/ssh_login_alert.sh'
+    ssh_alert_config_line: "session optional pam_exec.so {{ ssh_alert_file_path }}"
+    ssh_alert_file_content: '#!/usr/bin/env bash'
+  tasks:
+  - name: 'Install mosh locales'
+    shell: 'locale-gen en_US.UTF-8'
+
+  - name: Setup alternate SSH port
+    lineinfile:
+      dest: '/etc/ssh/sshd_config'
+      regexp: '^Port'
+      line: 'Port {{ new_ssh_port }}'
+
+  - name: 'Create empty SSH alert script'
+    copy:
+      dest: "{{ ssh_alert_file_path }}"
+      content: '{{ ssh_alert_file_content }}'
+      owner: root
+      mode: '700'
+      force: no
+
+  - name: 'Check if SSH alerts are set up'
+    # credit: https://stackoverflow.com/questions/29075287
+    lineinfile:
+      state: absent
+      path: "/etc/pam.d/sshd"
+      search_string: "{{ ssh_alert_config_line }}"
+    check_mode: yes
+    changed_when: no
+    register: ssh_alert_line_check
+
+  - name: 'Set up ssh alert in PAM configs'
+    when: ssh_alert_line_check.found == 0
+    lineinfile:
+      state: present
+      path: "/etc/pam.d/sshd"
+      line: '{{ssh_alert_config_line}}'
+
+  - name: Alter selinux settings
+    when: update_selinux
+    block:
+    - name: Setup SELinux for alternate SSH port
+      seport:
+        ports: '{{ new_ssh_port }}'
+        proto: 'tcp'
+        setype: 'ssh_port_t'
+        state: present
+
+    - name: Remove SELinux 22 port for SSH
+      seport:
+        ports: 22
+        protocol: tcp
+        setype: ssh_port_t
+        state: absent
+        local: true
+
+  - name: Disable SSH root login
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      regexp: '^PermitRootLogin'
+      line: 'PermitRootLogin no'
+
+  - name: Restart SSHd
+    systemd:
+      name: sshd
+      state: restarted
+
+  # TODO: add ssh login alerts
