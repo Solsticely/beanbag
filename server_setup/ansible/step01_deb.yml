@@ -27,6 +27,7 @@
       - sysstat
       - apt-show-versions
       - debsums
+      - unzip
   - name: Install packages (selinux)
     when: update_selinux
     apt:
