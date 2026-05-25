@@ -9,3 +9,5 @@
   import_playbook: step04_user.yml
 - name: 'Set up user-related settings'
   import_playbook: step05_ssh.yml
+- name: 'Set up EDR systems'
+  import_playbook: step06_edr.yml

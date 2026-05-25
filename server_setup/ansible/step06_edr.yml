@@ -1,0 +1,41 @@
+---
+- become: yes
+  hosts: pre_security
+  become_method: sudo
+  vars_files:
+    - 'config.yml'
+  vars:
+    ssh_alert_file_path: '/home/{{ new_user_name }}/secure/ssh_login_alert.sh'
+    ssh_alert_config_line: "session optional pam_exec.so {{ ssh_alert_file_path }}"
+    ssh_alert_file_content: '#!/usr/bin/env bash'
+  tasks:
+  - name: 'Check if Thor lite is already downloaded'
+    stat:
+      dest: '/home/{{ new_user_name }}/secure/thor-lite'
+    register: thor_lite_folder_stat
+
+  - name: 'Make Thor directory'
+    when: 'not thor_lite_folder_stat.stat.exists'
+    file:
+      dest: '/home/{{ new_user_name }}/secure/thor-lite'
+      owner: 'root'
+      mode: '700'
+      state: directory
+
+  - name: 'Download Thor lite'
+    when: 'not thor_lite_folder_stat.stat.exists'
+    unarchive:
+      src: '{{ thor_download_url }}'
+      remote_src: yes
+      dest: '/home/{{ new_user_name }}/secure/thor-lite'
+      owner: 'root'
+      mode: '700'
+
+  - name: 'Update Thor lite license'
+    copy:
+      src: './thor_license_file.lic'
+      dest: '/home/{{ new_user_name }}/secure/thor-lite/{{ thor_license_file_name }}'
+      mode: '500'
+
+  - name: 'Update Thor lite'
+    command: '/home/{{ new_user_name }}/secure/thor-lite/thor-lite-util upgrade'
