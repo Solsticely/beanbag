@@ -5,7 +5,7 @@ t=$(cat<<EOF | sed s/agneau/tofu/g | tee ~/whereami
 ░░░░░░░░░░█▀█░█▀▀░█▀█░█▀▀░█▀█░█░█░░░█░█▀▀░░░░░░░░░░
 ░░░░░░░░░░█▀█░█░█░█░█░█▀▀░█▀█░█░█░▄▀░░█░█░░░░░░░░░░
 ░░░░░░░░░░▀░▀░▀▀▀░▀░▀░▀▀▀░▀░▀░▀▀▀░▀░░░▀▀▀░░░░░░░░░░
-EOF);echo "$t"|xargs -L1 bash -c echo\ \${0:10:-10}
+EOF);echo "$t"|xargs -L1 bash -c 'echo ${0:10:-10}'
 
 This server has auditing on and logs are monitored
 off-server. Unauthorized access to this system is
