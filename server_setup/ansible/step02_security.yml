@@ -200,8 +200,12 @@
     file: {dest: /etc/ssh/sshd_config, mode: '600'}
   - name: Change permissions for /etc/cron.d
     file: {dest: /etc/cron.d, mode: '700'}
+  - name: Change permissions for /etc/crontab
+    file: {dest: /etc/crontab, mode: '600'}
   - name: Change permissions for /etc/cron.daily
     file: {dest: /etc/cron.daily, mode: '700'}
+  - name: Change permissions for /etc/cron.hourly
+    file: {dest: /etc/cron.hourly, mode: '700'}
   - name: Change permissions for /etc/cron.weekly
     file: {dest: /etc/cron.weekly, mode: '700'}
   - name: Change permissions for /etc/cron.monthly
