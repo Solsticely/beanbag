@@ -5,6 +5,14 @@
   vars_files:
     - 'config.yml'
   tasks:
+  - name: "Add user {{ new_user_name }} to sudoers"
+    community.general.sudoers:
+      group: sudo
+      commands: ALL
+      state: present
+      name: bigguys
+      nopassword: no
+
   - name: "Add user {{ new_user_name }}"
     user:
       name: "{{ new_user_name }}"
@@ -39,3 +47,4 @@
       user: "{{ new_user_name }}"
       state: present
       key: "{{ new_user_ssh_pubkey }}"
+

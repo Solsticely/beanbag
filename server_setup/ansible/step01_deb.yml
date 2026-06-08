@@ -28,6 +28,7 @@
       - apt-show-versions
       - debsums
       - unzip
+      - sudo
   - name: Install packages (selinux)
     when: update_selinux
     apt:
