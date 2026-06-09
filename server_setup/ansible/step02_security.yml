@@ -220,6 +220,7 @@
   # TODO: pull https://github.com/CISOfy/lynis to ~/secure/lynis and create ~/secure/lynis-reports
   # TODO: OSSEC or wazuh or crowdsec
   # TODO: set up sigma
+  # TODO: set up snort
   # TODO: External audit logging
   # TODO: Some basic selinux configuration
   # TODO: Lock down apparmor
