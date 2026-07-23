@@ -61,11 +61,37 @@
         state: absent
         local: true
 
+  # SSH logging & hardening - login
   - name: Disable SSH root login
-    lineinfile:
-      dest: /etc/ssh/sshd_config
-      regexp: '^PermitRootLogin'
-      line: 'PermitRootLogin no'
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^PermitRootLogin', line: 'PermitRootLogin no'}
+  - name: Disable SSH password-based login
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^PasswordAuthentication', line: 'PasswordAuthentication no'}
+  - name: Disable keyboard-interactive login
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^KbdInteractiveAuthentication', line: 'KbdInteractiveAuthentication NO'}
+  - name: Enable PAM login
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^UsePAM', line: 'UsePAM YES'}
+
+  # SSH logging & hardening - etc
+  - name: Disable X11 forwarding
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^X11Forwarding', line: 'X11Forwarding NO'}
+  - name: Setup verbose SSH logging
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^LogLevel', line: 'LogLevel VERBOSE'}
+  - name: Setup max SSH auth tries
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^MaxAuthTries', line: 'MaxAuthTries 3'}
+  - name: Setup max SSH sessions
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^MaxSessions', line: 'MaxSessions 2'}
+  - name: Setup SSH max client alives
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^ClientAliveCountMax', line: 'ClientAliveCountMax 2'}
+  - name: Setup SSH keepalive method
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^TCPKeepAlive', line: 'TCPKeepAlive NO'}
+  - name: Setup SSH agent forwarding
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^AllowAgentForwarding', line: 'AllowAgentForwarding NO'}
+  - name: Setup SSH TCP forwarding
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^AllowTcpForwarding', line: 'AllowTcpForwarding NO'}
+
+  # SSH logging & hardening - scaring people :D
+  - name: Setup SSH TCP forwarding
+    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^Banner', line: 'Banner /etc/motd'}
 
   - name: Restart SSHd
     systemd:

@@ -28,22 +28,6 @@
   - name: Write /etc/motd banner
     copy: {dest: /etc/motd, content: "{{ lookup('file', 'login_banner.txt') }}\n"}
 
-  # SSH logging & hardening
-  - name: Setup verbose SSH logging
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^LogLevel', line: 'LogLevel VERBOSE'}
-  - name: Setup max SSH auth tries
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^MaxAuthTries', line: 'MaxAuthTries 3'}
-  - name: Setup max SSH sessions
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^MaxSessions', line: 'MaxSessions 2'}
-  - name: Setup SSH max client alives
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^ClientAliveCountMax', line: 'ClientAliveCountMax 2'}
-  - name: Setup SSH keepalive method
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^TCPKeepAlive', line: 'TCPKeepAlive NO'}
-  - name: Setup SSH agent forwarding
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^AllowAgentForwarding', line: 'AllowAgentForwarding NO'}
-  # - name: Setup SSH TCP forwarding
-  #   lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^AllowTcpForwarding', line: 'AllowTcpForwarding NO'}
-
   # Sysctl
   - name: Set dev.tty.ldisc_autoload=0
     sysctl: {name: dev.tty.ldisc_autoload, value: 0, sysctl_set: yes}
