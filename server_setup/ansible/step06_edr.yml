@@ -4,10 +4,6 @@
   become_method: sudo
   vars_files:
     - 'config.yml'
-  vars:
-    ssh_alert_file_path: '/home/{{ new_user_name }}/secure/ssh_login_alert.sh'
-    ssh_alert_config_line: "session optional pam_exec.so {{ ssh_alert_file_path }}"
-    ssh_alert_file_content: '#!/usr/bin/env bash'
   tasks:
   - name: 'Check if Thor lite is already downloaded'
     stat:
