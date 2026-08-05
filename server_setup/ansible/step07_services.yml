@@ -1,0 +1,53 @@
+---
+- become: yes
+  hosts: pre_security
+  become_method: sudo
+  vars_files:
+    - 'config.yml'
+  tasks:
+  - name: 'Clone setup repository'
+    git:
+      repo: '{{ setup_repo_origin }}'
+      dest: '/home/{{ new_user_name }}/X'
+      recursive: true
+
+  # TODO: set up some default stow[ne]
+
+  - name: 'Setup server'
+    command: '/usr/bin/env bash /home/{{ new_user_name }}/X/pipescripts/setup_server_services.bash'
+
+  # TODO: planning for services:
+  # 1. secure cronscript for thor-lite
+  # 2. adapt beanbag to use JUST for the scripts :D and just run just commands. We can't use s6 cuz it needs a compilation, and a C compilation at that...
+  # 3. a systemd repeating timer for running and updating thor!
+  # 4. fd structure:
+  #    home
+  #     X/
+  #       <...>
+  #     Services/
+  #       Service 1/
+  #         bean.toml
+  #         Justfile
+  #         <...regular service files/links...>
+  #       Service 2/
+  #         bean.zip
+  #         <...regular service files/links...>
+  #     Beanbag/
+  #       datafiles/
+  #         Service 1/
+  #           <...>
+  #       services/
+  #         Service 1/
+  #           bean.toml
+  #           Justfile
+  #         Service 2_v1.0.1.zip
+  #       logs/
+  #         <...logs...>
+  #     Crons/
+  #       Monthly/
+  #       Daily/
+  #         backup.toml
+  #       Hourly/
+  #     secure/
+  #       ...
+

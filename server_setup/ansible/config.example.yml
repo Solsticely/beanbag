@@ -5,6 +5,7 @@ pwd_hash_salt: R6B4DMBDM571CeK
 new_ssh_port: 122
 update_selinux: yes
 thor_download_url: 'URL to nextron systems THOR download......'
+setup_repo_origin: 'https://codeberg.org/Solsticely/X.git'
 # Write the contents of your thor license file to 'server_setup/ansible/thor_license_file.lic' *always.*
 # Then, put the original file name in the variable below
 thor_license_file_name: '89b75a435c3858b0359a579638a8a39d_770da0e75ed7b049e66f2c75382412aa.lic'
