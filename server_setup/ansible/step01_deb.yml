@@ -29,6 +29,7 @@
       - debsums
       - unzip
       - sudo
+      - cron
   - name: Install packages (selinux)
     when: update_selinux
     apt:
