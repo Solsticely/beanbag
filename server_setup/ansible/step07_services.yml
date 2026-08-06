@@ -5,22 +5,78 @@
   vars_files:
     - 'config.yml'
   tasks:
-  - name: 'Clone setup repository'
-    git:
-      repo: '{{ setup_repo_origin }}'
-      dest: '/home/{{ new_user_name }}/X'
-      recursive: true
+  - name: 'beancron: Add privileged cron parent folder'
+    file: {path: '/home/{{ new_user_name }}/secure/Crons', state: directory, owner: 'root', mode: '700'}
 
-  # TODO: set up some default stow[ne]
+  - name: 'beancron: Add privileged cron parent folder'
+    file: {path: '/home/{{ new_user_name }}/Crons', state: directory, owner: '{{ new_user_name }}', mode: '700'}
 
-  - name: 'Setup server'
-    command: '/usr/bin/env bash /home/{{ new_user_name }}/X/pipescripts/setup_server_services.bash'
+  # Generated using
+  # # syntax: 'display_name,time_name,filesystem_name job2_disp,job2_time,job2_pathname, ...'
+  # times = [i.split(',') for i in 'yearly,yearly,Yearly monthly,monthly,Monthly daily,daily,Daily hourly,hourly,Hourly'.split()]
+  # for disp, cron, path in times:
+  #   print("# All %s cron files" % disp)
+  #   print("- name: 'beancron: Add crontab files - %s - folder - secure'\n  file: {path: '/home/{{ new_user_name }}/secure/Crons/%s', state: directory, owner: 'root',                mode: '700'}" % (disp, path))
+  #   print("- name: 'beancron: Add crontab files - %s - folder - unpriv'\n  file: {path: '/home/{{ new_user_name }}/Crons/%s',        state: directory, owner: '{{ new_user_name }}', mode: '700'}" % (disp, path))
+  #   print("- name: 'beancron: Add crontab files - %s - script'\n  vars: {cron_scripts_path: '%s'}\n  template: {dest: '/home/{{ new_user_name }}/secure/Crons/%s/start_all_jobs.sh', src: 'start_cron_jobs.sh', owner: 'root', mode: '700'}" % (disp, path, path))
+  #   print()
+  # print("# Actual cron jobs")
+  # for disp, cron, path in times:
+  #   print("- name: 'beancron: Add crontab job - %s'\n  cron: {name: '%s beancron jobs', special_time: '%s', job: '/home/{{ new_user_name }}/secure/Crons/%s/start_all_jobs.sh'}" % (disp, disp, cron, path))
+
+  # All yearly cron files
+  - name: 'beancron: Add crontab files - yearly - folder - secure'
+    file: {path: '/home/{{ new_user_name }}/secure/Crons/Yearly', state: directory, owner: 'root',                mode: '700'}
+  - name: 'beancron: Add crontab files - yearly - folder - unpriv'
+    file: {path: '/home/{{ new_user_name }}/Crons/Yearly',        state: directory, owner: '{{ new_user_name }}', mode: '700'}
+  - name: 'beancron: Add crontab files - yearly - script'
+    vars: {cron_scripts_path: 'Yearly'}
+    template: {dest: '/home/{{ new_user_name }}/secure/Crons/Yearly/start_all_jobs.sh', src: 'start_cron_jobs.sh', owner: 'root', mode: '700'}
+
+  # All monthly cron files
+  - name: 'beancron: Add crontab files - monthly - folder - secure'
+    file: {path: '/home/{{ new_user_name }}/secure/Crons/Monthly', state: directory, owner: 'root',                mode: '700'}
+  - name: 'beancron: Add crontab files - monthly - folder - unpriv'
+    file: {path: '/home/{{ new_user_name }}/Crons/Monthly',        state: directory, owner: '{{ new_user_name }}', mode: '700'}
+  - name: 'beancron: Add crontab files - monthly - script'
+    vars: {cron_scripts_path: 'Monthly'}
+    template: {dest: '/home/{{ new_user_name }}/secure/Crons/Monthly/start_all_jobs.sh', src: 'start_cron_jobs.sh', owner: 'root', mode: '700'}
+
+  # All daily cron files
+  - name: 'beancron: Add crontab files - daily - folder - secure'
+    file: {path: '/home/{{ new_user_name }}/secure/Crons/Daily', state: directory, owner: 'root',                mode: '700'}
+  - name: 'beancron: Add crontab files - daily - folder - unpriv'
+    file: {path: '/home/{{ new_user_name }}/Crons/Daily',        state: directory, owner: '{{ new_user_name }}', mode: '700'}
+  - name: 'beancron: Add crontab files - daily - script'
+    vars: {cron_scripts_path: 'Daily'}
+    template: {dest: '/home/{{ new_user_name }}/secure/Crons/Daily/start_all_jobs.sh', src: 'start_cron_jobs.sh', owner: 'root', mode: '700'}
+
+  # All hourly cron files
+  - name: 'beancron: Add crontab files - hourly - folder - secure'
+    file: {path: '/home/{{ new_user_name }}/secure/Crons/Hourly', state: directory, owner: 'root',                mode: '700'}
+  - name: 'beancron: Add crontab files - hourly - folder - unpriv'
+    file: {path: '/home/{{ new_user_name }}/Crons/Hourly',        state: directory, owner: '{{ new_user_name }}', mode: '700'}
+  - name: 'beancron: Add crontab files - hourly - script'
+    vars: {cron_scripts_path: 'Hourly'}
+    template: {dest: '/home/{{ new_user_name }}/secure/Crons/Hourly/start_all_jobs.sh', src: 'start_cron_jobs.sh', owner: 'root', mode: '700'}
+
+  # Actual cron jobs
+  - name: 'beancron: Add crontab job - yearly'
+    cron: {name: 'yearly beancron jobs', special_time: 'yearly', job: '/home/{{ new_user_name }}/secure/Crons/Yearly/start_all_jobs.sh'}
+  - name: 'beancron: Add crontab job - monthly'
+    cron: {name: 'monthly beancron jobs', special_time: 'monthly', job: '/home/{{ new_user_name }}/secure/Crons/Monthly/start_all_jobs.sh'}
+  - name: 'beancron: Add crontab job - daily'
+    cron: {name: 'daily beancron jobs', special_time: 'daily', job: '/home/{{ new_user_name }}/secure/Crons/Daily/start_all_jobs.sh'}
+  - name: 'beancron: Add crontab job - hourly'
+    cron: {name: 'hourly beancron jobs', special_time: 'hourly', job: '/home/{{ new_user_name }}/secure/Crons/Hourly/start_all_jobs.sh'}
+
+  - name: 'beancron: Restart cron'
+    systemd: {state: restarted, enabled: yes, masked: no, unit: cron}
 
   # TODO: planning for services:
   # 1. secure cronscript for thor-lite
   # 2. adapt beanbag to use JUST for the scripts :D and just run just commands. We can't use s6 cuz it needs a compilation, and a C compilation at that...
-  # 3. a systemd repeating timer for running and updating thor!
-  # 4. fd structure:
+  # 3. fd structure:
   #    home
   #     X/
   #       <...>
@@ -41,8 +97,8 @@
   #           bean.toml
   #           Justfile
   #         Service 2_v1.0.1.zip
-  #       logs/
-  #         <...logs...>
+  #     Logs/
+  #       <...logs...>
   #     Crons/
   #       Monthly/
   #       Daily/
