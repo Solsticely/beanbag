@@ -35,3 +35,6 @@
 
   - name: 'Update Thor lite'
     command: '/home/{{ new_user_name }}/secure/thor-lite/thor-lite-util upgrade'
+
+  # TODO: add thor crontab
+      
