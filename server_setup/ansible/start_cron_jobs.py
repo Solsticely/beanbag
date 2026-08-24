@@ -14,73 +14,58 @@ import sys
 import time
 import traceback
 
+os.umask(0)
+
 BEANCRON_VERSION = "0.0.1"
-RUN_DATE = time.time_ns() // 10**9
 
 # Relevant available variables:
 NEW_USER_NAME = """{{ new_user_name }}"""  # e.g. 'tom_scott'
 CRON_SCRIPTS_PATH = """{{ cron_scripts_path }}"""  # e.g. 'Monthly', 'Hourly', etc.
 
-# Generated variables
-HOME_FOLDER = pwd.getpwnam(NEW_USER_NAME).pw_dir
-
-# Script paths are /home/{{ new_user_name }}/{secure/,}Crons/{{ cron_scripts_path }}
-SECURE_SCRIPTS_PATH = HOME_FOLDER / f"secure/Crons/{CRON_SCRIPTS_PATH}"
-USER_SCRIPTS_PATH = HOME_FOLDER / f"Crons/{CRON_SCRIPTS_PATH}"
-
-# NOTE: features you can cut out if you'd like to keep beancron more minimal:
-# 1. ~~GZIP logs~~
-# 2. Timeouts
-# 3. Use anacron TwT
-
-# TODO: assert that we're running as root or other privileged user
-# TODO: assert that we have access to runuser
-# TODO: assert that current script is not editable by other users (has umask 0o077 at the very least and 0o277 ideally)
-
-# TODO: all logs should be owned by root and stored at /home/{{ new_user_name }}/{secure/,}Logs/Cron/run_%date%_{{ cron_scripts_path }}_%script_name%.log
-SECURE_LOG_FOLDER = HOME_FOLDER / "secure/Logs/Cron/"
-USER_LOG_FOLDER = HOME_FOLDER / "Logs/Cron/"
-CRON_LOG_FILE = HOME_FOLDER / f"secure/Logs/Cron/beancron_run_{str(RUN_DATE)}.txt"
-
-# TODO: run all scripts as root                from /home/{{ new_user_name }}/secure/Crons/{{ cron_scripts_path }} EXCEPT this script
-# TODO: run all scripts as {{ new_user_name }} from /home/{{ new_user_name }}/Crons/{{ cron_scripts_path }}
-# TODO: run all commands asynchronously
-# TODO: non-secure run logs should have chmod 644, secure run logs should have chmod 600
+# Configurable variables
 SECURE_LOG_PERMS = 0o600
 USER_LOG_PERMS = 0o644
 
 TIMEOUT_WARNING = 60
 
+# Generated variables
+RUN_DATE = time.time_ns() // 10**9
+
+HOME_FOLDER = pwd.getpwnam(NEW_USER_NAME).pw_dir
+
+SECURE_SCRIPTS_PATH = HOME_FOLDER / f"secure/Crons/{CRON_SCRIPTS_PATH}"
+USER_SCRIPTS_PATH = HOME_FOLDER / f"Crons/{CRON_SCRIPTS_PATH}"
+
+SECURE_LOG_FOLDER = HOME_FOLDER / "secure/Logs/Cron/"
+USER_LOG_FOLDER = HOME_FOLDER / "Logs/Cron/"
+CRON_LOG_FILE = HOME_FOLDER / f"secure/Logs/Cron/beancron_run_{str(RUN_DATE)}.log"
+
+# NOTE: features you can cut out if you'd like to keep beancron more minimal:
+# 1. Timeouts (This can kinda be helpful with debugging but as always you can just check the log to see what started and didn't finish.)
+# 2. Use anacron TwT
+# 3. Secure/insecure (or user) distinction (I wanna keep this because it helps being able to write scripts entirely unprivileged)
+# 4. Unneccesary security / file checks that will error out eventually (this is very suckless esque, i like it, but it does make your script kinda gross)
+# 5. Security checks
+
 # Since umask is set later on, we need to initialise log_file after main().
 # log_file is initialised in log_quiet()
-log_file = None
+log_path = CRON_LOG_FILE
+log_fd = os.open(
+    path=log_path,
+    flags=(os.O_RDWR | os.O_EXCL | os.O_CREAT),
+    mode=SECURE_LOG_PERMS,
+)
+log_file = open(log_fd, "w")
 
 
 def log_quiet(*args, **kwargs):
     global log_file
-    if log_file is None:
-        # We need umask set up, that's why we're initialising log_file here instead.
-        log_path = CRON_LOG_FILE
-        log_fd = os.open(
-            path=log_path,
-            flags=(os.O_RDWR | os.O_EXCL | os.O_CREAT),
-            mode=SECURE_LOG_PERMS,
-        )
-        log_file = open(log_fd, "w")
-
-    print("BEANCRON", *args, **kwargs, file=log_file)
+    print("BEANCRON", *args, **kwargs, file=log_file, flush=True)
 
 
 def log_loud(*args, **kwargs):
     log_quiet("UHOH!", *args, **kwargs)
     print("BEANCRON UHOH!", *args, **kwargs, file=sys.stderr)
-
-
-# Things we need to log:
-# 1. which jobs are found
-# 2. each job's status as they are started and they finish
-# 3. warnings if jobs take too long
-# 4. time each job took to finish
 
 
 @dataclasses.dataclass
@@ -90,7 +75,9 @@ class JobConf:
 
     def get_log_path(self) -> str:
         parent_dir = SECURE_LOG_FOLDER if self.is_secure else USER_LOG_FOLDER
-        filename = f"run_{str(RUN_DATE)}_{CRON_SCRIPTS_PATH}_{self.script_path.name}.log"
+        filename = (
+            f"run_{str(RUN_DATE)}_{CRON_SCRIPTS_PATH}_{self.script_path.name}.log"
+        )
         return parent_dir / filename
 
     async def _run(self):
@@ -110,9 +97,7 @@ class JobConf:
         shlex_args = shlex.join(program_args)
 
         # Run the command!
-        log_quiet(
-            f"Running command {shlex_args}, with logs going to {log_path}"
-        )
+        log_quiet(f"Running command {shlex_args}, with logs going to {log_path}")
         start_time = time.time_ns()
         process = await asyncio.create_subprocess_exec(
             *program_args,
@@ -135,9 +120,7 @@ class JobConf:
 
         time_elapsed = (time.time_ns() - start_time) / 10**9
 
-        log_quiet(
-            f"Command {shlex_args} finished running! Took {time_elapsed}s"
-        )
+        log_quiet(f"Command {shlex_args} finished running! Took {time_elapsed}s")
 
         if returncode != 0:
             log_loud(
@@ -152,7 +135,6 @@ class JobConf:
             log_loud(f"Failed while trying to run script {self.script_path}: {e}")
             for i in trace.splitlines():
                 log_loud("EXC", i)
-            
 
 
 def find_jobs(path: Path, is_secure: bool) -> list[asyncio.Task]:
@@ -161,6 +143,7 @@ def find_jobs(path: Path, is_secure: bool) -> list[asyncio.Task]:
     if not path.is_dir():
         log_loud(f"Cron scripts path {path} is not a valid directory!")
         return []
+
     if is_secure:
         # Security check: check if path to secure crons is clean
         if path.resolve() != path:
@@ -210,13 +193,25 @@ def find_jobs(path: Path, is_secure: bool) -> list[asyncio.Task]:
 
 
 async def main():
-    # with help from:
-    # - https://stackoverflow.com/questions/36745577
+    # Double make sure that we're umask 0
     os.umask(0)
 
     if os.geteuid() != 0:
-        log_loud("Beancron requires running as root as runuser cannot be used without uid=0.")
-        log_loud("Continuing anyways; ")
+        log_loud(
+            "Beancron requires running as root as runuser cannot be used without uid=0."
+        )
+        log_loud("Continuing anyways")
+
+    if '{' in '{{new_user_name}}':
+        log_loud("Beancron is a JINJA template, make sure you template beancron before running.")
+        log_loud("Continuing anyways")
+
+    script_os_stat = Path(__file__).stat
+    if script_os_stat.st_mode & 0o022 != 0 or script_os_stat.st_uid != os.geteuid():
+        log_loud("Beancron's script is alterable by users other than the current user!")
+        log_loud(f"Make sure you run chown 0 {__file__} and chmod 700 {__file__}")
+        return
+        
 
     log_quiet(
         f"Started Beancron v{BEANCRON_VERSION}! Running {CRON_SCRIPTS_PATH} jobs. {datetime.datetime.now().strftime('%c')}"
