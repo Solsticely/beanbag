@@ -5,12 +5,10 @@
 import asyncio
 import dataclasses
 import datetime
-import gzip  # Your python package needs to be configured with gzip to run beancron
 import os
 from pathlib import Path
 import pwd
 import shlex
-import shutil
 import subprocess
 import sys
 import time
@@ -31,7 +29,7 @@ SECURE_SCRIPTS_PATH = HOME_FOLDER / f"secure/Crons/{CRON_SCRIPTS_PATH}"
 USER_SCRIPTS_PATH = HOME_FOLDER / f"Crons/{CRON_SCRIPTS_PATH}"
 
 # NOTE: features you can cut out if you'd like to keep beancron more minimal:
-# 1. GZIP logs
+# 1. ~~GZIP logs~~
 # 2. Timeouts
 # 3. Use anacron TwT
 
@@ -39,7 +37,7 @@ USER_SCRIPTS_PATH = HOME_FOLDER / f"Crons/{CRON_SCRIPTS_PATH}"
 # TODO: assert that we have access to runuser
 # TODO: assert that current script is not editable by other users (has umask 0o077 at the very least and 0o277 ideally)
 
-# TODO: all logs should be owned by root and stored at /home/{{ new_user_name }}/{secure/,}Logs/Cron/run_%date%_{{ cron_scripts_path }}_%script_name%.txt.gz
+# TODO: all logs should be owned by root and stored at /home/{{ new_user_name }}/{secure/,}Logs/Cron/run_%date%_{{ cron_scripts_path }}_%script_name%.log
 SECURE_LOG_FOLDER = HOME_FOLDER / "secure/Logs/Cron/"
 USER_LOG_FOLDER = HOME_FOLDER / "Logs/Cron/"
 CRON_LOG_FILE = HOME_FOLDER / f"secure/Logs/Cron/beancron_run_{str(RUN_DATE)}.txt"
@@ -51,7 +49,6 @@ CRON_LOG_FILE = HOME_FOLDER / f"secure/Logs/Cron/beancron_run_{str(RUN_DATE)}.tx
 SECURE_LOG_PERMS = 0o600
 USER_LOG_PERMS = 0o644
 
-COMPRESSED_LOG_EXTENSION = ".gz"
 TIMEOUT_WARNING = 60
 
 # Since umask is set later on, we need to initialise log_file after main().
@@ -91,21 +88,15 @@ class JobConf:
     script_path: Path
     is_secure: bool
 
-    def get_log_path(self, is_compressed: bool = False) -> str:
-        extension = ".log" + COMPRESSED_LOG_EXTENSION if is_compressed else ".log"
+    def get_log_path(self) -> str:
         parent_dir = SECURE_LOG_FOLDER if self.is_secure else USER_LOG_FOLDER
-        filename = f"run_{str(RUN_DATE)}_{CRON_SCRIPTS_PATH}_{self.script_path.name}{extension}"
+        filename = f"run_{str(RUN_DATE)}_{CRON_SCRIPTS_PATH}_{self.script_path.name}.log"
         return parent_dir / filename
 
     async def _run(self):
-        # Steps:
-        # 1. create log file, set owner & perms
-        # 2. run job AS APPROPRIATE USER and pipe into log file (use runuser)
-        # 3. when job is done, create new compressed log file with appropriate owner & perms
-        # 4. remove old log file
         perms = SECURE_LOG_PERMS if self.is_secure else USER_LOG_PERMS
 
-        # Set up uncompressed log file
+        # Set up log file
         log_path = self.get_log_path()
         # This fd is passed directly to asyncio, no file opening needed
         log_fd = os.open(
@@ -148,32 +139,10 @@ class JobConf:
             f"Command {shlex_args} finished running! Took {time_elapsed}s"
         )
 
-        # Compress the log!
         if returncode != 0:
             log_loud(
                 f"Cron task at {self.script_path} failed with code {returncode}. See {log_path} for logs."
             )
-
-        # create compressed log
-        comp_log_path = self.get_log_path(is_compressed=True)
-        comp_log_fd = os.open(
-            path=comp_log_path, flags=(os.O_RDWR | os.O_EXCL | os.O_CREAT), mode=perms
-        )
-        log_quiet(
-            f"Compressing logs for cronjob at {self.script_path}: {log_path} -> {comp_log_path}"
-        )
-        with open(comp_log_fd, "wb") as comp_log_file:
-            with gzip.open(comp_log_file, "wb") as newfile:
-                with open(log_path, "rb") as oldfile:
-                    shutil.copyfileobj(oldfile, newfile)
-        log_quiet(f"Finished compressing logs for cronjob at {self.script_path}")
-
-        # only remove old log if run was successful
-        if returncode == 0:
-            log_quiet(
-                f"Removing uncompressed logs for {self.script_path} as no error was encountered."
-            )
-            log_path.unlink()
 
     async def run(self):
         try:
@@ -256,9 +225,8 @@ async def main():
     jobs = []
 
     # Run secure jobs
-    # def find_jobs(user: int | str, path: Path, is_secure: bool) -> list
-    jobs += find_jobs(SECURE_SCRIPTS_PATH, True)
-    jobs += find_jobs(USER_SCRIPTS_PATH, False)
+    jobs += find_jobs(SECURE_SCRIPTS_PATH, is_secure=True)
+    jobs += find_jobs(USER_SCRIPTS_PATH, is_secure=False)
 
     # Run user jobs
     if len(jobs) != 0:
