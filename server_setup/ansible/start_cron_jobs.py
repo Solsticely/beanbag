@@ -131,7 +131,7 @@ class JobConf:
         try:
             return await self._run()
         except Exception as e:
-            trace = "".join(traceback.format_exception(e))
+            trace = "".join(traceback.format_exc())
             log_loud(f"Failed while trying to run script {self.script_path}: {e}")
             for i in trace.splitlines():
                 log_loud("EXC", i)
@@ -163,19 +163,19 @@ def find_jobs(path: Path, is_secure: bool) -> list[asyncio.Task]:
     for script in path.iterdir():
         if is_secure:
             if script.is_symlink():
-                log_loud(f"Secure cron script {path} is a symlink.")
+                log_loud(f"Secure cron script {script} is a symlink.")
                 continue
             if script.stat().st_mode & 0o077 != 0:
                 log_loud(
-                    f"Secure cron script {path} has bad permissions (expected 0o700, got {oct(script.stat().st_mode)})"
+                    f"Secure cron script {script} has bad permissions (expected 0o700, got {oct(script.stat().st_mode)})"
                 )
                 continue
 
         if not script.is_file():
-            log_loud(f"Cron script {path} is not a file.")
+            log_loud(f"Cron script {script} is not a file.")
             continue
         if script.stat().st_mode & 0o111 == 0:
-            log_loud(f"Cron script {path} is not executable.")
+            log_loud(f"Cron script {script} is not executable.")
             continue
 
         new_job = JobConf(
@@ -202,7 +202,7 @@ async def main():
         )
         log_loud("Continuing anyways")
 
-    if '{' in '{{new_user_name}}':
+    if '{' in NEW_USER_NAME:
         log_loud("Beancron is a JINJA template, make sure you template beancron before running.")
         log_loud("Continuing anyways")
 
@@ -211,7 +211,6 @@ async def main():
         log_loud("Beancron's script is alterable by users other than the current user!")
         log_loud(f"Make sure you run chown 0 {__file__} and chmod 700 {__file__}")
         return
-        
 
     log_quiet(
         f"Started Beancron v{BEANCRON_VERSION}! Running {CRON_SCRIPTS_PATH} jobs. {datetime.datetime.now().strftime('%c')}"
