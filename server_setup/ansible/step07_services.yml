@@ -18,11 +18,11 @@
   #   print("# All %s cron files" % disp)
   #   print("- name: 'beancron: Add crontab files - %s - folder - secure'\n  file: {path: '/home/{{ new_user_name }}/secure/Crons/%s', state: directory, owner: 'root',                mode: '700'}" % (disp, path))
   #   print("- name: 'beancron: Add crontab files - %s - folder - unpriv'\n  file: {path: '/home/{{ new_user_name }}/Crons/%s',        state: directory, owner: '{{ new_user_name }}', mode: '700'}" % (disp, path))
-  #   print("- name: 'beancron: Add crontab files - %s - script'\n  vars: {cron_scripts_path: '%s'}\n  template: {dest: '/home/{{ new_user_name }}/secure/Crons/%s/start_all_jobs.sh', src: 'start_cron_jobs.py', owner: 'root', mode: '700'}" % (disp, path, path))
+  #   print("- name: 'beancron: Add crontab files - %s - script'\n  vars: {cron_scripts_path: '%s'}\n  template: {dest: '/home/{{ new_user_name }}/secure/Crons/%s/start_all_jobs.py', src: 'start_cron_jobs.py', owner: 'root', mode: '700'}" % (disp, path, path))
   #   print()
   # print("# Actual cron jobs")
   # for disp, cron, path in times:
-  #   print("- name: 'beancron: Add crontab job - %s'\n  cron: {name: '%s beancron jobs', special_time: '%s', job: '/home/{{ new_user_name }}/secure/Crons/%s/start_all_jobs.sh'}" % (disp, disp, cron, path))
+  #   print("- name: 'beancron: Add crontab job - %s'\n  cron: {name: '%s beancron jobs', special_time: '%s', job: '/home/{{ new_user_name }}/secure/Crons/%s/start_all_jobs.py'}" % (disp, disp, cron, path))
 
   # All yearly cron files
   - name: 'beancron: Add crontab files - yearly - folder - secure'
@@ -31,7 +31,7 @@
     file: {path: '/home/{{ new_user_name }}/Crons/Yearly',        state: directory, owner: '{{ new_user_name }}', mode: '700'}
   - name: 'beancron: Add crontab files - yearly - script'
     vars: {cron_scripts_path: 'Yearly'}
-    template: {dest: '/home/{{ new_user_name }}/secure/Crons/Yearly/start_all_jobs.sh', src: 'start_cron_jobs.py', owner: 'root', mode: '700'}
+    template: {dest: '/home/{{ new_user_name }}/secure/Crons/Yearly/start_all_jobs.py', src: 'start_cron_jobs.py', owner: 'root', mode: '700'}
 
   # All monthly cron files
   - name: 'beancron: Add crontab files - monthly - folder - secure'
@@ -40,7 +40,7 @@
     file: {path: '/home/{{ new_user_name }}/Crons/Monthly',        state: directory, owner: '{{ new_user_name }}', mode: '700'}
   - name: 'beancron: Add crontab files - monthly - script'
     vars: {cron_scripts_path: 'Monthly'}
-    template: {dest: '/home/{{ new_user_name }}/secure/Crons/Monthly/start_all_jobs.sh', src: 'start_cron_jobs.py', owner: 'root', mode: '700'}
+    template: {dest: '/home/{{ new_user_name }}/secure/Crons/Monthly/start_all_jobs.py', src: 'start_cron_jobs.py', owner: 'root', mode: '700'}
 
   # All daily cron files
   - name: 'beancron: Add crontab files - daily - folder - secure'
@@ -49,7 +49,7 @@
     file: {path: '/home/{{ new_user_name }}/Crons/Daily',        state: directory, owner: '{{ new_user_name }}', mode: '700'}
   - name: 'beancron: Add crontab files - daily - script'
     vars: {cron_scripts_path: 'Daily'}
-    template: {dest: '/home/{{ new_user_name }}/secure/Crons/Daily/start_all_jobs.sh', src: 'start_cron_jobs.py', owner: 'root', mode: '700'}
+    template: {dest: '/home/{{ new_user_name }}/secure/Crons/Daily/start_all_jobs.py', src: 'start_cron_jobs.py', owner: 'root', mode: '700'}
 
   # All hourly cron files
   - name: 'beancron: Add crontab files - hourly - folder - secure'
@@ -58,17 +58,17 @@
     file: {path: '/home/{{ new_user_name }}/Crons/Hourly',        state: directory, owner: '{{ new_user_name }}', mode: '700'}
   - name: 'beancron: Add crontab files - hourly - script'
     vars: {cron_scripts_path: 'Hourly'}
-    template: {dest: '/home/{{ new_user_name }}/secure/Crons/Hourly/start_all_jobs.sh', src: 'start_cron_jobs.py', owner: 'root', mode: '700'}
+    template: {dest: '/home/{{ new_user_name }}/secure/Crons/Hourly/start_all_jobs.py', src: 'start_cron_jobs.py', owner: 'root', mode: '700'}
 
   # Actual cron jobs
   - name: 'beancron: Add crontab job - yearly'
-    cron: {name: 'yearly beancron jobs', special_time: 'yearly', job: '/home/{{ new_user_name }}/secure/Crons/Yearly/start_all_jobs.sh'}
+    cron: {name: 'yearly beancron jobs', special_time: 'yearly', job: '/home/{{ new_user_name }}/secure/Crons/Yearly/start_all_jobs.py'}
   - name: 'beancron: Add crontab job - monthly'
-    cron: {name: 'monthly beancron jobs', special_time: 'monthly', job: '/home/{{ new_user_name }}/secure/Crons/Monthly/start_all_jobs.sh'}
+    cron: {name: 'monthly beancron jobs', special_time: 'monthly', job: '/home/{{ new_user_name }}/secure/Crons/Monthly/start_all_jobs.py'}
   - name: 'beancron: Add crontab job - daily'
-    cron: {name: 'daily beancron jobs', special_time: 'daily', job: '/home/{{ new_user_name }}/secure/Crons/Daily/start_all_jobs.sh'}
+    cron: {name: 'daily beancron jobs', special_time: 'daily', job: '/home/{{ new_user_name }}/secure/Crons/Daily/start_all_jobs.py'}
   - name: 'beancron: Add crontab job - hourly'
-    cron: {name: 'hourly beancron jobs', special_time: 'hourly', job: '/home/{{ new_user_name }}/secure/Crons/Hourly/start_all_jobs.sh'}
+    cron: {name: 'hourly beancron jobs', special_time: 'hourly', job: '/home/{{ new_user_name }}/secure/Crons/Hourly/start_all_jobs.py'}
 
   - name: 'beancron: Restart cron'
     systemd: {state: restarted, enabled: yes, masked: no, unit: cron}
