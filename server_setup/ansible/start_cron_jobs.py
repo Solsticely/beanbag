@@ -32,6 +32,8 @@ RUN_DATE = time.time_ns() // 10**9
 # Run a little sanity check
 if "{" in NEW_USER_NAME:
     print("Hey! Beancron is a JINJA template, make sure you template beancron before running.")
+    NEW_USER_NAME = os.environ['USER']
+    CRON_SCRIPTS_PATH = "Debug"
 
 HOME_FOLDER = Path(pwd.getpwnam(NEW_USER_NAME).pw_dir)
 
@@ -41,6 +43,10 @@ USER_SCRIPTS_PATH = HOME_FOLDER / f"Crons/{CRON_SCRIPTS_PATH}"
 SECURE_LOG_FOLDER = HOME_FOLDER / "secure/Logs/Cron/"
 USER_LOG_FOLDER = HOME_FOLDER / "Logs/Cron/"
 CRON_LOG_FILE = SECURE_LOG_FOLDER / f"beancron_run_{str(RUN_DATE)}.log"
+
+# Set environment variables to prevent fork-bombing
+BEANCRON_ANTIRECURSE_ENV_NAME = "BEANCRON_ANTI_RECURSE"
+BEANCRON_ANTIRECURSE_ENV_VALUE = f"Beancron v{BEANCRON_VERSION}, running {CRON_SCRIPTS_PATH} jobs"
 
 
 def quick_bailout():
@@ -62,9 +68,13 @@ def quick_bailout():
         print("OR make sure you're running as the right user (did you forget sudo while debugging?)")
         sys.exit(1)
 
+    # Make sure we don't forkbomb
+    if BEANCRON_ANTIRECURSE_ENV_NAME in os.environ or CRON_LOG_FILE.exists():
+        print("Beancron detected recursion or duplicate run! Quitting before I forkbomb.")
+        sys.exit(1)
+
 
 quick_bailout()
-
 
 # Since umask is set later on, we need to initialise log_file after main().
 # Look in log_quiet for initialisation
@@ -164,7 +174,7 @@ class JobConf:
 
         # Set up command line arguments
         program_args = [str(self.script_path)]
-        if not self.is_secure:
+        if not self.is_secure and os.environ.get("USER") != NEW_USER_NAME:
             program_args = ["runuser", "-u", NEW_USER_NAME, "--"] + program_args
         shlex_args = shlex.join(program_args)
 
@@ -198,6 +208,7 @@ class JobConf:
                 f"Cron task at {self.script_path} failed with code {returncode}. See {log_path} for logs."
             )
 
+
 @infallible(lambda path, is_secure: f"look for jobs at {path}", [])
 def find_jobs(path: Path, is_secure: bool) -> list[asyncio.Task]:
     """
@@ -220,6 +231,7 @@ def find_jobs(path: Path, is_secure: bool) -> list[asyncio.Task]:
             log_loud(f"Cron scripts path {path} has bad permissions (expected 0o700, got {oct(path.stat().st_mode & 0o777)})")
             return []
 
+    current_script = Path(__file__).resolve()
     jobs = []
 
     for script in path.iterdir():
@@ -236,6 +248,11 @@ def find_jobs(path: Path, is_secure: bool) -> list[asyncio.Task]:
             continue
         if script.stat().st_mode & 0o111 == 0:
             log_loud(f"Cron script {script} is not executable.")
+            continue
+
+        # DO NOT FORK BOMB
+        if script.resolve() == current_script:
+            log_quiet(f"Found current script {script} when searching {path}, ignoring...")
             continue
 
         new_job = JobConf(
@@ -255,6 +272,8 @@ def find_jobs(path: Path, is_secure: bool) -> list[asyncio.Task]:
 async def main():
     # Double make sure that we're umask 0
     os.umask(0)
+    # Prevent recursion
+    os.environ[BEANCRON_ANTIRECURSE_ENV_NAME] = BEANCRON_ANTIRECURSE_ENV_VALUE
 
     start = time.time_ns()
 
