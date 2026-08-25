@@ -42,7 +42,7 @@ USER_SCRIPTS_PATH = HOME_FOLDER / f"Crons/{CRON_SCRIPTS_PATH}"
 
 SECURE_LOG_FOLDER = HOME_FOLDER / "secure/Logs/Cron/"
 USER_LOG_FOLDER = HOME_FOLDER / "Logs/Cron/"
-CRON_LOG_FILE = SECURE_LOG_FOLDER / f"beancron_run_{str(RUN_DATE)}.log"
+CRON_LOG_FILE = SECURE_LOG_FOLDER / f"beancron_run_{str(RUN_DATE)}_{CRON_SCRIPTS_PATH}.log"
 
 # Set environment variables to prevent fork-bombing
 BEANCRON_ANTIRECURSE_ENV_NAME = "BEANCRON_ANTI_RECURSE"
