@@ -50,7 +50,7 @@
     vars: {cron_scripts_path: '{{ item[2] }}'}
     template:
       dest: '/home/{{ new_user_name }}/secure/Crons/{{ item[2] }}/start_all_jobs.py'
-      src: 'start_cron_jobs.py'
+      src: './beancron_start_cron_jobs.py'
       owner: 'root'
       group: 'root'
       mode: '700'
