@@ -3,8 +3,9 @@
   hosts: pre_security
   become_method: sudo
   vars_files:
-    - 'config.yml'
+    - '../config.yml'
   vars:
+    login_banner_file_content: "{{ lookup('file', '../login_banner.txt') }}\n" 
     excluded_drivers:
     # Storage, DMA and bus drivers
     - 'usb-storage'
@@ -51,11 +52,11 @@
 
   # Legal header
   - name: Write /etc/issue banner
-    copy: {dest: /etc/issue, content: "{{ lookup('file', 'login_banner.txt') }}\n"}
+    copy: {dest: /etc/issue, content: "{{ login_banner_file_content }}"}
   - name: Write /etc/issue.net banner
-    copy: {dest: /etc/issue.net, content: "{{ lookup('file', 'login_banner.txt') }}\n"}
+    copy: {dest: /etc/issue.net, content: "{{ login_banner_file_content }}"}
   - name: Write /etc/motd banner
-    copy: {dest: /etc/motd, content: "{{ lookup('file', 'login_banner.txt') }}\n"}
+    copy: {dest: /etc/motd, content: "{{ login_banner_file_content }}"}
 
   # Sysctl
   - name: "Set sysctl items"

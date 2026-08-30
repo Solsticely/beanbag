@@ -31,7 +31,7 @@
 
   - name: 'Update Thor lite license'
     copy:
-      src: './thor_license_file.lic'
+      src: '../thor_license_file.lic'
       dest: '/home/{{ new_user_name }}/secure/thor-lite/{{ thor_license_file_name }}'
       mode: '500'
 
