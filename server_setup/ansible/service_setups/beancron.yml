@@ -3,7 +3,7 @@
   hosts: pre_security
   become_method: sudo
   vars_files:
-    - 'config.yml'
+    - '../config.yml'
   vars:
     cron_timings:
       # MAYBE: consider changing cron special time to regular time 
