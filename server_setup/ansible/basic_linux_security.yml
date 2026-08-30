@@ -1,0 +1,158 @@
+---
+- become: yes
+  hosts: pre_security
+  become_method: sudo
+  vars_files:
+    - 'config.yml'
+  vars:
+    excluded_drivers:
+    # Storage, DMA and bus drivers
+    - 'usb-storage'
+    - 'firewire-ohci'
+    - 'firewire-core'
+    - 'thunderbolt'
+
+    # Uncommon network protocol drivers
+    - 'sctp'
+    - 'dccp'
+    - 'rds'
+    - 'tipc'
+
+    # Other drivers that I have no idea what theyre for
+    - 'n-hdlc'
+    - 'ax25'
+    - 'netrom'
+    - 'x25'
+    - 'rose'
+    - 'decnet'
+    - 'econet'
+    - 'af_802154'
+    - 'ipx'
+    - 'appletalk'
+    - 'psnap'
+    - 'p8023'
+    - 'llc'
+    - 'p8022'
+  tasks:
+  - name: Enable accounting with sysstat
+    systemd: {state: started, enabled: yes, masked: no, unit: sysstat}
+
+  - name: Enable process accounting (systemd)
+    systemd: {state: started, enabled: yes, masked: no, unit: acct}
+  
+  - name: Enable process accounting (accton)
+    command: /usr/sbin/accton on
+
+  - name: Enable auditd
+    systemd: {state: started, enabled: yes, masked: no, unit: auditd}
+
+  - name: Enable unattended upgrades
+    systemd: {state: started, enabled: yes, masked: no, unit: unattended-upgrades}
+
+  # Legal header
+  - name: Write /etc/issue banner
+    copy: {dest: /etc/issue, content: "{{ lookup('file', 'login_banner.txt') }}\n"}
+  - name: Write /etc/issue.net banner
+    copy: {dest: /etc/issue.net, content: "{{ lookup('file', 'login_banner.txt') }}\n"}
+  - name: Write /etc/motd banner
+    copy: {dest: /etc/motd, content: "{{ lookup('file', 'login_banner.txt') }}\n"}
+
+  # Sysctl
+  - name: "Set sysctl items"
+    sysctl:
+      name: "{{item[0]}}"
+      value: "{{item[1]}}"
+      sysctl_set: yes
+    loop:
+    - [dev.tty.ldisc_autoload, 0]
+    - [fs.protected_fifos, 2]
+    - [kernel.kptr_restrict, 2]
+    # - [kernel.modules_disabled, 1]
+    - [kernel.sysrq, 0]
+    - [kernel.unprivileged_bpf_disabled, 1]
+    - [kernel.yama.ptrace_scope, 2]
+    - [net.core.bpf_jit_harden, 2]
+    - [net.ipv4.conf.all.log_martians, 1]
+    - [net.ipv4.conf.all.rp_filter, 1]
+    - [net.ipv4.conf.all.send_redirects, 0]
+    - [net.ipv4.conf.default.log_martians, 1]
+    - [net.ipv4.conf.default.send_redirects, 0]
+
+  # PAM auth hardening
+  - name: Set yescript rounds in login defs
+    lineinfile: {dest: /etc/login.defs, regexp: '^YESCRYPT_COST_FACTOR', line: 'YESCRYPT_COST_FACTOR 9'}
+  - name: Set sha rounds in login defs
+    lineinfile: {dest: /etc/login.defs, regexp: '^SHA_CRYPT_MIN_ROUNDS', line: 'SHA_CRYPT_MIN_ROUNDS 5000'}
+  - name: Set default umask to 027
+    lineinfile: {dest: /etc/login.defs, regexp: '^UMASK', line: 'UMASK 027'}
+
+  # Modprobe
+  - name: Make sure modprobe file exists
+    file: {dest: /etc/modprobe.d/needless.conf, state: touch, mode: '644'}
+
+  # Storage, DMA and bus drivers
+  - name: Blacklist drivers
+    lineinfile:
+      dest: /etc/modprobe.d/needless.conf
+      regexp: '^blacklist[ \t ]*{{item}}'
+      line: 'blacklist {{item}}'
+    loop: "{{excluded_drivers}}"
+  - name: Disable driver installations
+    lineinfile:
+      dest: /etc/modprobe.d/needless.conf
+      regexp: '^install[ \t ]*{{item}}'
+      line: 'install {{item}} /bin/false'
+    loop: "{{excluded_drivers}}"
+
+  # Auditd setup
+  - name: Install nextron audit config
+    ansible.builtin.get_url:
+      url: https://raw.githubusercontent.com/Neo23x0/auditd/master/audit.rules
+      dest: /etc/audit/rules.d/audit.rules
+
+  - name: Update audit rules
+    command: augenrules --load
+
+  - name: Restart auditd
+    systemd: {name: auditd, state: restarted}
+
+  # Improve file permissions
+  - name: Improve file permissions
+    file:
+      dest: "{{item[0]}}"
+      mode: "{{item[1]}}"
+    loop:
+    - [/boot/grub/grub.cfg, '600']
+    - [/etc/ssh/sshd_config, '600']
+    - [/etc/cron.d, mode: '700']
+    - [/etc/crontab, '600']
+    - [/etc/cron.daily, '700']
+    - [/etc/cron.hourly, '700']
+    - [/etc/cron.weekly, '700']
+    - [/etc/cron.monthly, '700']
+  
+  # TODO: Extra audit stuff that has to be added later:
+  # TODO: CRON: Periodically run check debsums
+  # TODO: CRON: Some simple file integrity tool
+  # TODO: CRON: Periodically run thor lite
+  # TODO: CRON: elfsign and periodic verify
+  # TODO: CRON: Set up chkrootkit
+  # TODO: pull https://github.com/CISOfy/lynis to ~/secure/lynis and create ~/secure/lynis-reports
+  # TODO: OSSEC or wazuh or crowdsec
+  # TODO: set up sigma
+  # TODO: set up snort
+  # TODO: External audit logging
+  # TODO: Some basic selinux configuration
+  # TODO: Lock down apparmor
+  # TODO: Install Endlessl
+  # TODO: Set up transparent file encryption
+  # TODO: Install a reverse proxy that bans or smites based on IPs and ja4+ tls/tcp/http signatures
+  # TODO: Set up fail2ban
+  # TODO: Lock in kernel modules that you need so you can set kernel.modules_disabled=1
+
+  # TODO: Different pentesting/auditing tools:
+  # TODO: Peass-NG
+  # TODO: sliver framework
+  # TODO: havoc framework
+  # TODO: ~~lynis~~
+

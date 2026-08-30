@@ -1,8 +1,8 @@
 ---
 - name: 'Set up debian-dependent settings'
-  import_playbook: step01_deb.yml
+  import_playbook: debian_setup.yml
 - name: 'Set up security settings'
-  import_playbook: step02_security.yml
+  import_playbook: basic_linux_security.yml
 - name: 'Set up networking-related settings'
   import_playbook: step03_net.yml
 - name: 'Set up user-related settings'
