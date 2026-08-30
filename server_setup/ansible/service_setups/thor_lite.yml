@@ -3,7 +3,7 @@
   hosts: pre_security
   become_method: sudo
   vars_files:
-    - 'config.yml'
+    - '../config.yml'
   tasks:
   - name: 'Check if Thor lite is already downloaded'
     stat:
