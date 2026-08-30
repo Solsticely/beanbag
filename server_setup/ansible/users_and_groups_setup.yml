@@ -36,13 +36,13 @@
       home: '/home/{{ new_user_name }}'
 
   - name: 'Create user directories'
-    file: {path: "{{ item }}", owner: "{{ new_user_name }}", mode: '700', state: directory}
+    file: {path: "{{ item }}", owner: "{{ new_user_name }}", group: "{{ new_user_name }}", mode: '700', state: directory}
     loop:
     - '/home/{{ new_user_name }}'
     - '/home/{{ new_user_name }}/Logs'
 
   - name: 'Create privileged user directories'
-    file: {path: "{{ item }}", owner: root, mode: '700', state: directory}
+    file: {path: "{{ item }}", owner: root, group: root, mode: '700', state: directory}
     loop:
     - '/home/{{ new_user_name }}/secure'
     - '/home/{{ new_user_name }}/secure/Logs'

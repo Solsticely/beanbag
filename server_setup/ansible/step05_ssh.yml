@@ -23,6 +23,7 @@
       dest: "{{ ssh_alert_file_path }}"
       content: '{{ ssh_alert_file_content }}'
       owner: root
+      group: root
       mode: '700'
       force: no
 
