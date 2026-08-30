@@ -5,13 +5,25 @@
   vars_files:
     - 'config.yml'
   tasks:
-  - name: "Add user {{ new_user_name }} to sudoers"
+  - name: "Add sudo group to sudoers"
     community.general.sudoers:
       group: sudo
       commands: ALL
       state: present
       name: bigguys
       nopassword: no
+
+  - name: Remove root login
+    user:
+      name: root
+      password_lock: yes
+      password: !
+      shell: /sbin/nologin
+      append: true
+      uid: 0
+      groups: root
+      create_home: false
+      home: /root
 
   - name: "Add user {{ new_user_name }}"
     user:
@@ -29,18 +41,6 @@
       owner: root
       mode: '700'
       state: directory
-
-  - name: Remove root login
-    user:
-      name: root
-      password_lock: yes
-      password: !
-      shell: /sbin/nologin
-      append: true
-      uid: 0
-      groups: root
-      create_home: false
-      home: /root
 
   - name: Add SSH pubkey for user
     authorized_key:
