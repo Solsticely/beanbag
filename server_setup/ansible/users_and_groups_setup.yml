@@ -35,12 +35,17 @@
       password: "{{ new_user_pwd | string | password_hash(salt=pwd_hash_salt) }}"
       home: '/home/{{ new_user_name }}'
 
-  - name: 'Create secure directory'
-    file:
-      path: '/home/{{ new_user_name }}/secure'
-      owner: root
-      mode: '700'
-      state: directory
+  - name: 'Create user directories'
+    file: {path: "{{ item }}", owner: "{{ new_user_name }}", mode: '700', state: directory}
+    loop:
+    - '/home/{{ new_user_name }}'
+    - '/home/{{ new_user_name }}/Logs'
+
+  - name: 'Create privileged user directories'
+    file: {path: "{{ item }}", owner: root, mode: '700', state: directory}
+    loop:
+    - '/home/{{ new_user_name }}/secure'
+    - '/home/{{ new_user_name }}/secure/Logs'
 
   - name: Add SSH pubkey for user
     authorized_key:
