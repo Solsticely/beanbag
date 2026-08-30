@@ -3,13 +3,13 @@
   import_playbook: debian_setup.yml
 - name: 'Set up security settings'
   import_playbook: basic_linux_security.yml
+- name: 'Set up SSH'
+  import_playbook: system_setup/ssh_config_and_harden.yml
 - name: 'Set up firewall settings'
   import_playbook: firewall.yml
 - name: 'Set up user-related settings'
   import_playbook: users_and_groups_setup.yml
-- name: 'Set up SSH'
-  import_playbook: system_setup/ssh_config_and_harden.yml
-- name: 'Set up EDR systems'
-  import_playbook: step06_edr.yml
 - name: 'Set up cron system'
   import_playbook: service_setups/beancron.yml
+- name: 'Set up EDR systems'
+  import_playbook: service_setups/thor_lite.yml
