@@ -7,29 +7,27 @@
   tasks:
   - name: Start firewall setup (disable ufw)
     ufw: {state: 'disabled', policy: 'deny'}
-  - name: Delete all firewall rules
-    ufw: {state: 'reset'}
 
   - name: Manually enable privileged ports through firewall
-    # Allowed ports are: 22 (fake SSH), 68 (DHCP/BOOTP), ?? (actual SSH),
-    # 80 (cleartext HTTP), 443 (TLS+HTTP, QUIC+HTTP)
-    block:
-    - name: 'Allow fake SSH'
-      ufw: {rule: 'allow', port: '22', comment: 'Allow fake SSH'}
-    - name: 'Allow DHCP'
-      ufw: {rule: 'allow', port: '68', comment: 'Allow DHCP'}
-    - name: 'Allow HTTP'
-      ufw: {rule: 'allow', port: '80', comment: 'Allow HTTP'}
-    - name: 'Allow actual SSH port'
-      ufw: {rule: 'allow', port: '{{ new_ssh_port }}', comment: 'Allow actual SSH port'}
-    - name: 'Allow HTTPS'
-      ufw: {rule: 'allow', port: '443', comment: 'Allow HTTPS'}
-    - name: 'Allow unprivileged ports, tcp'
-      ufw: {rule: 'allow', port: '1024:65535', proto: 'tcp', comment: 'Allow unprivileged ports, tcp'}
-    - name: 'Allow unprivileged ports, udp'
-      ufw: {rule: 'allow', port: '1024:65535', proto: 'udp', comment: 'Allow unprivileged ports, udp'}
-    - name: 'Rate limit SSH port'
-      ufw: {rule: 'limit', port: '{{ new_ssh_port }}', proto: 'tcp', comment: 'Rate limit SSH port'}
+    ufw:
+      rule: "{{item[0]}}"
+      port: "{{item[1]}}"
+      proto: "{{item[2]}}"
+      comment: "{{item[3]}}"
+    loop:
+      # Allowed ports <1024 
+    - ["allow", "22", "any", "Allow fake SSH"]
+    - ["allow", "68", "any", "Allow DHCP"] # Or BOOTP? idk what that is
+    - ["allow", "80", "any", "Allow HTTP"]
+    - ["allow", "443", "any", "Allow HTTPS"] # and QUIC
+
+      # Unprivileged ports
+    - ["allow", "1024:65535", "tcp", "Allow unprivileged ports with TCP"]
+    - ["allow", "1024:65535", "udp", "Allow unprivileged ports with UDP"]
+
+      # SSH ports
+    - ["allow", "{{ new_ssh_port }}", "any", "Allow actual/hidden SSH port"]
+    - ["limit", "{{ new_ssh_port }}", "tcp", "Rate limit SSH port"]
 
   - name: 'Finish firewall setup (enable ufw)'
     ufw: {state: 'enabled', policy: 'deny'}
