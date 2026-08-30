@@ -12,21 +12,6 @@
   - name: 'Install mosh locales'
     shell: 'locale-gen en_US.UTF-8'
 
-  - name: Setup alternate SSH port
-    lineinfile:
-      dest: '/etc/ssh/sshd_config'
-      regexp: '^Port'
-      line: 'Port {{ new_ssh_port }}'
-
-  - name: 'Create empty SSH alert script'
-    copy:
-      dest: "{{ ssh_alert_file_path }}"
-      content: '{{ ssh_alert_file_content }}'
-      owner: root
-      group: root
-      mode: '700'
-      force: no
-
   - name: 'Check if SSH alerts are set up'
     # credit: https://stackoverflow.com/questions/29075287
     lineinfile:
@@ -37,6 +22,16 @@
     changed_when: no
     register: ssh_alert_line_check
 
+  - name: 'Create empty SSH alert script'
+    when: ssh_alert_line_check.found == 0
+    copy:
+      dest: "{{ ssh_alert_file_path }}"
+      content: '{{ ssh_alert_file_content }}'
+      owner: root
+      group: root
+      mode: '700'
+      force: no
+
   - name: 'Set up ssh alert in PAM configs'
     when: ssh_alert_line_check.found == 0
     lineinfile:
@@ -44,7 +39,7 @@
       path: "/etc/pam.d/sshd"
       line: '{{ssh_alert_config_line}}'
 
-  - name: Alter selinux settings
+  - name: Alter selinux settings for SSH port
     when: update_selinux
     block:
     - name: Setup SELinux for alternate SSH port
@@ -62,37 +57,32 @@
         state: absent
         local: true
 
-  # SSH logging & hardening - login
-  - name: Disable SSH root login
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^PermitRootLogin', line: 'PermitRootLogin no'}
-  - name: Disable SSH password-based login
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^PasswordAuthentication', line: 'PasswordAuthentication no'}
-  - name: Disable keyboard-interactive login
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^KbdInteractiveAuthentication', line: 'KbdInteractiveAuthentication NO'}
-  - name: Enable PAM login
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^UsePAM', line: 'UsePAM YES'}
+  - name: Harden and setup /etc/ssh/sshd_config
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      regexp: "^{{ item[0] }}"
+      line: "{{ item[0] }} {{ item[1] }}"
+    loop:
+    # Port setup (important)
+    - ['Port', "{{ new_ssh_port }}"]
+    # Login hardening
+    - ['PermitRootLogin', 'NO'] # Disable SSH root login
+    - ['PasswordAuthentication', 'NO'] # Disable SSH password-based login
+    - ['KbdInteractiveAuthentication', 'NO'] # Disable keyboard-interactive login
+    - ['UsePAM', 'YES'] # Enable PAM login
 
-  # SSH logging & hardening - etc
-  - name: Disable X11 forwarding
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^X11Forwarding', line: 'X11Forwarding NO'}
-  - name: Setup verbose SSH logging
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^LogLevel', line: 'LogLevel VERBOSE'}
-  - name: Setup max SSH auth tries
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^MaxAuthTries', line: 'MaxAuthTries 3'}
-  - name: Setup max SSH sessions
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^MaxSessions', line: 'MaxSessions 2'}
-  - name: Setup SSH max client alives
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^ClientAliveCountMax', line: 'ClientAliveCountMax 2'}
-  - name: Setup SSH keepalive method
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^TCPKeepAlive', line: 'TCPKeepAlive NO'}
-  - name: Setup SSH agent forwarding
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^AllowAgentForwarding', line: 'AllowAgentForwarding NO'}
-  - name: Setup SSH TCP forwarding
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^AllowTcpForwarding', line: 'AllowTcpForwarding NO'}
+    # Protocol
+    - ['X11Forwarding', 'NO'] # Disable X11 forwarding
+    - ['MaxAuthTries', '3'] # Setup max SSH auth tries
+    - ['MaxSessions', '2'] # Setup max SSH sessions
+    - ['ClientAliveCountMax', '2'] # Setup SSH max client alives
+    - ['TCPKeepAlive', 'NO'] # Setup SSH keepalive method
+    - ['AllowAgentForwarding', 'NO'] # Setup SSH agent forwarding
+    - ['AllowTcpForwarding', 'NO'] # Setup SSH TCP forwarding
 
-  # SSH logging & hardening - scaring people :D
-  - name: Setup SSH TCP forwarding
-    lineinfile: {dest: /etc/ssh/sshd_config, regexp: '^Banner', line: 'Banner /etc/motd'}
+    # Etc
+    - ['LogLevel', 'VERBOSE'] # Setup verbose SSH logging
+    - ['Banner', '/etc/motd'] # Setup SSH login banner to scare ppl OOooOoOOooOo
 
   - name: Restart SSHd
     systemd:
