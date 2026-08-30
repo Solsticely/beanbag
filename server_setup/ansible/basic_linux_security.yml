@@ -105,6 +105,8 @@
     loop: "{{excluded_drivers}}"
 
   # Auditd setup
+  # TODO: make auditd setup part of a 'update' loop that can be run in the future
+  # without re-running the entire notebook
   - name: Install nextron audit config
     ansible.builtin.get_url:
       url: https://raw.githubusercontent.com/Neo23x0/auditd/master/audit.rules
@@ -124,7 +126,7 @@
     loop:
     - [/boot/grub/grub.cfg, '600']
     - [/etc/ssh/sshd_config, '600']
-    - [/etc/cron.d, mode: '700']
+    - [/etc/cron.d, '700']
     - [/etc/crontab, '600']
     - [/etc/cron.daily, '700']
     - [/etc/cron.hourly, '700']
@@ -133,6 +135,7 @@
   
   # TODO: Extra audit stuff that has to be added later:
   # TODO: CRON: Periodically run check debsums
+  # TODO: CRON: Periodically re-install audit rules
   # TODO: CRON: Some simple file integrity tool
   # TODO: CRON: Periodically run thor lite
   # TODO: CRON: elfsign and periodic verify
