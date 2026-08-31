@@ -3,12 +3,12 @@
   import_playbook: system_setup/debian.yml
 - name: 'Set up security settings'
   import_playbook: system_setup/linux_harden.yml
+- name: 'Set up user-related settings'
+  import_playbook: system_setup/users_and_groups.yml
 - name: 'Set up SSH'
   import_playbook: system_setup/ssh_config_and_harden.yml
 - name: 'Set up firewall settings'
   import_playbook: system_setup/firewall.yml
-- name: 'Set up user-related settings'
-  import_playbook: system_setup/users_and_groups.yml
 
 - name: 'Set up cron system'
   import_playbook: service_setups/beancron.yml
