@@ -34,7 +34,7 @@
       state: directory
       owner: "{{ new_user_name }}"
       group: "{{ new_user_name }}"
-      mode: 700
+      mode: '700'
 
   - name: 'beancron: Create folders - secure cronjob folder'
     loop: "{{ cron_timings }}"
@@ -43,7 +43,7 @@
       state: directory
       owner: root
       group: root
-      mode: 700
+      mode: '700'
 
   - name: 'beancron: Create cronjob runner scripts'
     loop: "{{ cron_timings }}"
