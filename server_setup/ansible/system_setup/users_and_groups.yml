@@ -46,6 +46,7 @@
     loop:
     - '/home/{{ new_user_name }}/secure'
     - '/home/{{ new_user_name }}/secure/Logs'
+    - '/home/{{ new_user_name }}/secure/Logs/Security'
 
   - name: Add SSH pubkey for user
     authorized_key:

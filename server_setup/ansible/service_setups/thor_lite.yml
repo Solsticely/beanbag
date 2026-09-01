@@ -4,16 +4,18 @@
   become_method: sudo
   vars_files:
     - '../config.yml'
+  vars:
+    thor_lite_folder: '/home/{{ new_user_name }}/secure/thor-lite'
   tasks:
   - name: 'Check if Thor lite is already downloaded'
     stat:
-      dest: '/home/{{ new_user_name }}/secure/thor-lite'
+      dest: '{{ thor_lite_folder }}'
     register: thor_lite_folder_stat
 
   - name: 'Make Thor directory'
     when: 'not thor_lite_folder_stat.stat.exists'
     file:
-      dest: '/home/{{ new_user_name }}/secure/thor-lite'
+      dest: '{{ thor_lite_folder }}'
       owner: 'root'
       group: 'root'
       mode: '700'
@@ -24,7 +26,7 @@
     unarchive:
       src: '{{ thor_download_url }}'
       remote_src: yes
-      dest: '/home/{{ new_user_name }}/secure/thor-lite'
+      dest: '{{ thor_lite_folder }}'
       owner: 'root'
       group: 'root'
       mode: '700'
@@ -32,11 +34,17 @@
   - name: 'Update Thor lite license'
     copy:
       src: '../thor_license_file.lic'
-      dest: '/home/{{ new_user_name }}/secure/thor-lite/{{ thor_license_file_name }}'
+      dest: '{{ thor_lite_folder }}/{{ thor_license_file_name }}'
       mode: '500'
 
-  - name: 'Update Thor lite'
-    command: '/home/{{ new_user_name }}/secure/thor-lite/thor-lite-util upgrade'
+  # - name: 'Update Thor lite'
+  #   command: '{{ thor_lite_folder }}/thor-lite-util upgrade'
 
-  # TODO: add thor crontab
-      
+  - name: 'Add autoupdate & scan cron-job'
+    copy:
+      dest: '/home/{{ new_user_name }}/secure/Crons/Daily/thor_lite_update_and_daily_scan.sh'
+      mode: '700'
+      owner: 'root'
+      group: 'root'
+      content: "#!/usr/bin/env bash\nset -euxo pipefail\n'{{ thor_lite_folder }}/thor-lite-util' upgrade\n'{{ thor_lite_folder }}/thor-lite-linux-64' -c 60 -e '/home/{{ new_user_name }}/secure/Logs/Security'"
+
